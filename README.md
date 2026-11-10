@@ -24,7 +24,10 @@ Follow these steps to get the project running on your local machine:
 
 1. Clone & Navigate to the Repository
 
-How to clone 
+How to clone
+
+Open CMD or Terminal, and navigate (cd <file>) to your preferred file location
+
 git clone [https://github.com/adrian-21-oss/Senior-Citizen-Management-System.git](https://github.com/adrian-21-oss/Senior-Citizen-Management-System.git)
 cd Senior-Citizen-Management-System
 
@@ -53,7 +56,7 @@ or you can directly right click inside the pgAdmin and create a new database wit
 
 
 
-Copy this SQL
+In the Query Tool, Copy and paste this SQL
 
 -- =====================================================-- Senior Citizen Management System (SCMS)-- PostgreSQL schema - based on Data Dictionary v1.1-- Group 4-- =====================================================-- Run this on a fresh database. To start over, uncomment the next line:-- DROP SCHEMA public CASCADE; CREATE SCHEMA public;-- ------------------------------------------------------- 1. ADMIN_USER-- ----------------------------------------------------
 CREATE TABLE admin_user (
@@ -195,7 +198,7 @@ VALUES
 
 
 4. Configure Environment Variables
-Create a .env file (if not exists) in the root project folder and add your local PostgreSQL credentials:
+Create a .env file (literal '.env' named file, if not exists) in the root project folder and add your local PostgreSQL credentials, this is used to store database:
 
 Code snippet
 
