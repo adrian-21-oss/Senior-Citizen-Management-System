@@ -237,3 +237,12 @@ Commit Messages: Write clear, descriptive commit messages:
 Bash
 git commit -m "Added benefit ledger UI elements and validation routes"
 Sensitive Data: Never commit your .env file or hardcode database passwords. Keep local secrets local!
+
+
+
+
+
+QUESTIONS:
+ Why there is express.js
+
+ We're using Node.js as our backend engine, but we added Express.js on top of it because it gives us clean, easy-to-write API routes (app.get and app.post) and handles JSON data and database connections much cleaner than raw Node.
