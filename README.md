@@ -19,6 +19,9 @@ Senior-Citizen-Management-System/
 └── server.js               # Main Express backend API entry point
 
 
+
+
+
 Local Development Setup
 Follow these steps to get the project running on your local machine:
 
@@ -227,6 +230,7 @@ npm start
 
 http://localhost:5000/
 
+To look for your own html code... Just add your html after this http://localhost:5000/... For example, http://localhost:5000/process_benefit.html
 
 
 
