@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Process Benefits | Senior Citizen System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #17304f;
+    --navy-active: #24456e;
+    --blue: #2679c9;
+    --blue-dark: #1c63a8;
+    --ink: #1b2e4a;
+    --muted: #6b7a90;
+    --line: #e3e8ef;
+    --row: #f4f8fc;
+    --green-bg: #e3f5e6;
+    --green-ink: #2f8a4a;
+    --red-bg: #fde6e6;
+    --red-ink: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; display: flex; min-height: 100vh;
+    font-family: "Inter", system-ui, sans-serif; color: var(--ink); background: #fff;
+  }
+
+  /* Sidebar */
+  .sidebar { width: 240px; background: var(--navy); color: #fff; padding: 20px 14px; display: flex; flex-direction: column; flex-shrink: 0; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 8px; background: #fff; display: grid; place-items: center; color: var(--navy); font-weight: 700; }
+  .brand strong { display: block; font-size: 14px; }
+  .brand span { font-size: 11px; opacity: .7; }
+  .nav a { display: block; padding: 11px 12px; margin-bottom: 4px; border-radius: 8px; color: #dbe6f3; text-decoration: none; font-size: 13px; font-weight: 500; }
+  .nav a:hover { background: rgba(255,255,255,.08); }
+  .nav a.active { background: var(--navy-active); color: #fff; }
+  .logout { margin-top: auto; }
+
+  /* Main */
+  main { flex: 1; padding: 28px 36px; min-width: 0; }
+  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; }
+  .sub { margin: 0; color: var(--muted); font-size: 13px; }
+  .badge-official { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  .card { border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 2px 8px rgba(23,48,79,.05); margin-top: 20px; }
+  .search-card { padding: 18px 20px 14px; }
+  .label { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: block; }
+  .search-row { display: flex; gap: 16px; }
+  .input-wrap { position: relative; flex: 1; }
+  .input-wrap input { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 999px; padding: 0 44px 0 20px; font: inherit; font-size: 14px; color: var(--ink); }
+  .input-wrap input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); border: 0; background: none; font-size: 18px; color: var(--ink); cursor: pointer; display: none; }
+  .input-wrap.has-value .clear { display: block; }
+  .hint { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+
+  .btn { height: 44px; padding: 0 32px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn:hover:not(:disabled) { background: var(--blue-dark); }
+  .btn:disabled { background: #a9c4e0; cursor: not-allowed; }
+  .btn:focus-visible, .check:focus-visible, .pick:focus-visible { outline: 3px solid #9cc4ee; outline-offset: 2px; }
+
+  /* Match picker (when several seniors share a name) */
+  .picker { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .picker p { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+  .pick { display: flex; justify-content: space-between; width: 100%; padding: 10px 14px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--row); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+  .pick:hover { border-color: var(--blue); }
+  .pick span { color: var(--muted); }
+
+  /* Results */
+  .results { min-height: 380px; display: flex; flex-direction: column; }
+  .count { padding: 18px 22px; font-size: 13px; font-weight: 600; margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #eef2f7; color: var(--muted); font-size: 11px; font-weight: 600; text-align: left; padding: 11px 18px; }
+  td { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  tbody tr:nth-child(odd) { background: var(--row); }
+  th:nth-child(1), td:nth-child(1) { width: 70px; text-align: center; }
+  th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { text-align: center; }
+  .check { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; line-height: 22px; padding: 0; }
+  .check:disabled { cursor: not-allowed; }
+  .status { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .status.Available { background: var(--green-bg); color: var(--green-ink); }
+  .status.Claimed { background: var(--red-bg); color: var(--red-ink); }
+
+  .state { flex: 1; display: grid; place-content: center; text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+  .state h2 { margin: 14px 0 6px; font-size: 18px; color: var(--ink); }
+  .state p { margin: 0; max-width: 340px; line-height: 1.5; }
+  .state .icon { width: 56px; height: 56px; border-radius: 50%; background: var(--red-bg); color: var(--red-ink); font-size: 26px; font-weight: 700; display: grid; place-items: center; margin: 0 auto; }
+
+  .actions { display: flex; justify-content: flex-end; padding: 18px 22px; margin-top: auto; }
+
+  /* Dialogs */
+  dialog { border: 0; border-radius: 18px; padding: 0; width: min(520px, 92vw); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(23,48,79,.45); }
+  .modal { padding: 26px 30px 22px; position: relative; }
+  .modal h2 { margin: 0 0 18px; text-align: center; font-size: 20px; }
+  .modal .close { position: absolute; top: 14px; right: 18px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--ink); }
+  .list { border: 1px solid var(--line); border-radius: 12px; max-height: 220px; overflow-y: auto; }
+  .list-head, .list-row, .total { display: flex; justify-content: space-between; padding: 10px 18px; font-size: 13px; }
+  .list-head { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .total { border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; font-weight: 600; }
+  .note { text-align: center; font-size: 11px; color: var(--muted); margin: 14px 0; }
+  .error { color: var(--red-ink); font-size: 12px; text-align: center; margin: 0 0 10px; min-height: 0; }
+  .center { text-align: center; }
+  .center .btn { height: 40px; padding: 0 36px; }
+
+  dialog.success { background: #e9fbe9; box-shadow: 0 0 0 3px #3ed23e, 0 0 36px 10px rgba(62,210,62,.55); }
+  dialog.success .btn { background: #22b822; }
+  dialog.success h2 { font-size: 22px; margin-bottom: 26px; }
+  dialog.success small { display: block; font-weight: 500; font-size: 12px; margin-bottom: 8px; }
+
+  @media (max-width: 800px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .nav { display: flex; flex-wrap: wrap; }
+    .logout { margin: 0 0 0 auto; }
+    main { padding: 20px 16px; }
+    .search-row { flex-direction: column; gap: 10px; }
+    .results { overflow-x: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">S</div>
+    <div><strong>Senior Citizen System</strong><span>Senior Registry</span></div>
+  </div>
+  <nav class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="register_citizen.html">Register Senior</a>
+    <a href="process_benefit.html" class="active" aria-current="page">Process Benefits</a>
+    <a href="#">Manage Profiles</a>
+    <a href="#">Audit Reports</a>
+  </nav>
+  <nav class="nav logout"><a href="#">Logout</a></nav>
+</aside>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h1>Process Benefits</h1>
+      <p class="sub">Search a senior, select the benefits to release, and confirm the cash payout.</p>
+    </div>
+    <span class="badge-official">Official Registry</span>
+  </div>
+
+  <section class="card search-card">
+    <label class="label" for="searchInput">Search Criteria</label>
+    <div class="search-row">
+      <div class="input-wrap" id="inputWrap">
+        <input id="searchInput" type="text" placeholder="Enter the senior's full name" autocomplete="off">
+        <button class="clear" id="clearBtn" type="button" aria-label="Clear search">&times;</button>
+      </div>
+      <button class="btn" id="searchBtn" type="button">Search</button>
+    </div>
+    <p class="hint">Search by the senior's name (first, middle, or last).</p>
+    <div class="picker" id="picker" hidden></div>
+  </section>
+
+  <section class="card results" id="results" aria-live="polite"></section>
+</main>
+
+<!-- Release confirmation -->
+<dialog id="releaseDialog">
+  <div class="modal">
+    <button class="close" type="button" id="releaseClose" aria-label="Close">&times;</button>
+    <h2>Releasing Cash Payout</h2>
+    <div class="list">
+      <div class="list-head"><span>To be released</span><span>Amount</span></div>
+      <div id="releaseList"></div>
+    </div>
+    <div class="total"><span>Total amount</span><span id="releaseTotal"></span></div>
+    <p class="note">Please note: This action cannot be undone once confirmed.</p>
+    <p class="error" id="releaseError" role="alert"></p>
+    <div class="center"><button class="btn" id="confirmBtn" type="button">Release Cash Payout</button></div>
+  </div>
+</dialog>
+
+<!-- Success -->
+<dialog id="successDialog" class="success">
+  <div class="modal center">
+    <small>Congratulations!</small>
+    <h2>Cash Payout Released</h2>
+    <button class="btn" id="successOk" type="button">Okay</button>
+    <p class="note">Please note: This action cannot be undone once confirmed.</p>
+  </div>
+</dialog>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const peso = n => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const state = { senior: null, benefits: [], selected: new Set() };
+
+  async function api(url, options) {
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
+  /* ---------- Rendering ---------- */
+  function showState(icon, title, text) {
+    $('results').innerHTML =
+      `<div class="state">${icon ? `<div class="icon">${icon}</div>` : ''}<h2>${esc(title)}</h2><p>${esc(text)}</p></div>`;
+  }
+
+  function renderIdle() {
+    state.senior = null; state.benefits = []; state.selected.clear();
+    $('picker').hidden = true;
+    showState('', 'Search for a senior', 'Type the senior\u2019s name above to see their benefits for this year.');
+  }
+
+  function renderBenefits() {
+    const { benefits, selected, senior } = state;
+    const availableCount = benefits.filter(b => b.status !== 'Claimed').length;
+
+    const rows = benefits.map(b => {
+      const claimed = b.status === 'Claimed';
+      const checked = claimed || selected.has(b.benefit_id);
+      return `<tr>
+        <td><button class="check" type="button" data-id="${b.benefit_id}" ${claimed ? 'disabled' : ''}
+            aria-pressed="${checked}" aria-label="Select ${esc(b.benefit_name)}">${checked ? 'X' : ''}</button></td>
+        <td>${esc(b.benefit_name)}</td>
+        <td>${esc(b.period_description)}</td>
+        <td>${peso(b.amount)}</td>
+        <td><span class="status ${esc(b.status)}">${esc(b.status)}</span></td>
+      </tr>`;
+    }).join('');
+
+    $('results').innerHTML = `
+      <p class="count">${esc(senior.full_name)} (${esc(senior.senior_id)}): ${benefits.length} benefits, ${availableCount} available</p>
+      <table>
+        <thead><tr><th>Check</th><th>Benefit / Fund Name</th><th>Period / Description</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="actions"><button class="btn" id="releaseBtn" type="button" ${selected.size ? '' : 'disabled'}>Release Cash Payout</button></div>`;
+
+    $('results').querySelectorAll('.check:not(:disabled)').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const id = Number(btn.dataset.id);
+        state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+        renderBenefits();
+      }));
+    $('releaseBtn').addEventListener('click', openRelease);
+  }
+
+  /* ---------- Search ---------- */
+  async function loadBenefits(senior) {
+    try {
+      const { benefits } = await api(`/api/benefits/senior/${encodeURIComponent(senior.senior_id)}`);
+      state.senior = senior; state.benefits = benefits; state.selected.clear();
+      $('picker').hidden = true;
+      renderBenefits();
+    } catch (err) {
+      showState('!', 'Could not load benefits', err.message);
+    }
+  }
+
+  async function search() {
+    const name = $('searchInput').value.trim();
+    if (!name) { renderIdle(); return; }
+    $('searchBtn').disabled = true;
+    try {
+      const { seniors } = await api(`/api/benefits/search?name=${encodeURIComponent(name)}`);
+      if (seniors.length === 0) {
+        $('picker').hidden = true;
+        showState('!', 'No record found',
+          `We couldn\u2019t find a senior matching \u201c${name}\u201d. Check the spelling and search again.`);
+      } else if (seniors.length === 1) {
+        await loadBenefits(seniors[0]);
+      } else {
+        showPicker(seniors);
+      }
+    } catch (err) {
+      showState('!', 'Search failed', err.message);
+    } finally {
+      $('searchBtn').disabled = false;
+    }
+  }
+
+  function showPicker(seniors) {
+    $('results').innerHTML = '';
+    showState('', 'Choose a senior', 'More than one senior matches that name. Pick the right person above.');
+    $('picker').hidden = false;
+    $('picker').innerHTML = `<p>${seniors.length} seniors match. Select one:</p>` +
+      seniors.map((s, i) => `<button class="pick" type="button" data-i="${i}">${esc(s.full_name)}<span>${esc(s.senior_id)}</span></button>`).join('');
+    $('picker').querySelectorAll('.pick').forEach(btn =>
+      btn.addEventListener('click', () => loadBenefits(seniors[Number(btn.dataset.i)])));
+  }
+
+  /* ---------- Release payout ---------- */
+  function openRelease() {
+    const chosen = state.benefits.filter(b => state.selected.has(b.benefit_id));
+    if (!chosen.length) return;
+    $('releaseList').innerHTML = chosen.map(b =>
+      `<div class="list-row"><span>${esc(b.benefit_name)}</span><span>${peso(b.amount)}</span></div>`).join('');
+    $('releaseTotal').textContent = peso(chosen.reduce((sum, b) => sum + Number(b.amount), 0));
+    $('releaseError').textContent = '';
+    $('releaseDialog').showModal();
+  }
+
+  async function confirmRelease() {
+    $('confirmBtn').disabled = true;
+    try {
+      await api('/api/benefits/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senior_id: state.senior.senior_id, benefit_ids: [...state.selected] })
+      });
+      $('releaseDialog').close();
+      $('successDialog').showModal();
+      await loadBenefits(state.senior);   // refresh: released rows now show Claimed + X
+    } catch (err) {
+      $('releaseError').textContent = err.message;
+    } finally {
+      $('confirmBtn').disabled = false;
+    }
+  }
+
+  /* ---------- Events ---------- */
+  $('searchBtn').addEventListener('click', search);
+  $('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+  $('searchInput').addEventListener('input', e => $('inputWrap').classList.toggle('has-value', e.target.value !== ''));
+  $('clearBtn').addEventListener('click', () => {
+    $('searchInput').value = ''; $('inputWrap').classList.remove('has-value');
+    $('searchInput').focus(); renderIdle();
+  });
+  $('confirmBtn').addEventListener('click', confirmRelease);
+  $('releaseClose').addEventListener('click', () => $('releaseDialog').close());
+  $('successOk').addEventListener('click', () => $('successDialog').close());
+
+  renderIdle();
+</script>
+</body>
+</html>
