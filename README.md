@@ -46,7 +46,7 @@ Create the database:
 SQL
 CREATE DATABASE scms_db;
 
-or you can directly right click and create a new database with a name -> scms_db
+or you can directly right click inside the pgAdmin and create a new database with a name -> scms_db
 
 
 
