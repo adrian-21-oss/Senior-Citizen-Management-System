@@ -13,7 +13,13 @@
 ```text
 Senior-Citizen-Management-System/
 ├── public/                 # Frontend UI static files (HTML, CSS, JS)
-│   └── index.html          # Main dashboard / registration entry
+|     |  ├── js/ layout.js
+|     |  ├── css/ layout.css
+|     |
+│     ├── index.html          # Main dashboard / registration entry
+|     ├── process_benefit.html      # Adrian's part
+|     ├── page_template.html        # Shared layout - You can just duplicate and rename it
+|     ├── register_citizen.html     # An empty file, you may delete it if you wish
 ├── .env                    # Environment variables (Database secrets - DO NOT COMMIT)
 ├── package.json            # Node.js dependencies and scripts
 └── server.js               # Main Express backend API entry point
