@@ -65,7 +65,7 @@ or you can directly right click inside the pgAdmin and create a new database wit
 
 
 
-In the Query Tool, Copy and paste this SQL
+In the Query Tool, Copy and paste this SQL... The name of the database should be scms_db... You can change it though but you need to change also the DB_NAME=scms_db    in the '.env' file, referred to Step 4
 
 -- =====================================================-- Senior Citizen Management System (SCMS)-- PostgreSQL schema - based on Data Dictionary v1.1-- Group 4-- =====================================================-- Run this on a fresh database. To start over, uncomment the next line:-- DROP SCHEMA public CASCADE; CREATE SCHEMA public;-- ------------------------------------------------------- 1. ADMIN_USER-- ----------------------------------------------------
 CREATE TABLE admin_user (
