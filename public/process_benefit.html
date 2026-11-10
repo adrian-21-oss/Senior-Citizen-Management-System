@@ -4,48 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Process Benefits | Senior Citizen System</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/layout.css">
 <style>
-  :root {
-    --navy: #17304f;
-    --navy-active: #24456e;
-    --blue: #2679c9;
-    --blue-dark: #1c63a8;
-    --ink: #1b2e4a;
-    --muted: #6b7a90;
-    --line: #e3e8ef;
-    --row: #f4f8fc;
-    --green-bg: #e3f5e6;
-    --green-ink: #2f8a4a;
-    --red-bg: #fde6e6;
-    --red-ink: #c0392b;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; display: flex; min-height: 100vh;
-    font-family: "Inter", system-ui, sans-serif; color: var(--ink); background: #fff;
-  }
-
-  /* Sidebar */
-  .sidebar { width: 240px; background: var(--navy); color: #fff; padding: 20px 14px; display: flex; flex-direction: column; flex-shrink: 0; }
-  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 22px; }
-  .brand-mark { width: 34px; height: 34px; border-radius: 8px; background: #fff; display: grid; place-items: center; color: var(--navy); font-weight: 700; }
-  .brand strong { display: block; font-size: 14px; }
-  .brand span { font-size: 11px; opacity: .7; }
-  .nav a { display: block; padding: 11px 12px; margin-bottom: 4px; border-radius: 8px; color: #dbe6f3; text-decoration: none; font-size: 13px; font-weight: 500; }
-  .nav a:hover { background: rgba(255,255,255,.08); }
-  .nav a.active { background: var(--navy-active); color: #fff; }
-  .logout { margin-top: auto; }
-
-  /* Main */
-  main { flex: 1; padding: 28px 36px; min-width: 0; }
-  .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  h1 { margin: 0 0 4px; font-size: 26px; font-weight: 700; }
-  .sub { margin: 0; color: var(--muted); font-size: 13px; }
-  .badge-official { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-
-  .card { border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 2px 8px rgba(23,48,79,.05); margin-top: 20px; }
+  /* Page-specific styles only. Shared styles live in /css/layout.css */
   .search-card { padding: 18px 20px 14px; }
   .label { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: block; }
   .search-row { display: flex; gap: 16px; }
@@ -56,9 +17,6 @@
   .input-wrap.has-value .clear { display: block; }
   .hint { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
 
-  .btn { height: 44px; padding: 0 32px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .btn:hover:not(:disabled) { background: var(--blue-dark); }
-  .btn:disabled { background: #a9c4e0; cursor: not-allowed; }
   .btn:focus-visible, .check:focus-visible, .pick:focus-visible { outline: 3px solid #9cc4ee; outline-offset: 2px; }
 
   /* Match picker (when several seniors share a name) */
@@ -111,43 +69,14 @@
   dialog.success small { display: block; font-weight: 500; font-size: 12px; margin-bottom: 8px; }
 
   @media (max-width: 800px) {
-    body { flex-direction: column; }
-    .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; }
-    .nav { display: flex; flex-wrap: wrap; }
-    .logout { margin: 0 0 0 auto; }
-    main { padding: 20px 16px; }
     .search-row { flex-direction: column; gap: 10px; }
     .results { overflow-x: auto; }
   }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
-<body>
-
-<aside class="sidebar">
-  <div class="brand">
-    <div class="brand-mark">S</div>
-    <div><strong>Senior Citizen System</strong><span>Senior Registry</span></div>
-  </div>
-  <nav class="nav">
-    <a href="index.html">Dashboard</a>
-    <a href="register_citizen.html">Register Senior</a>
-    <a href="process_benefit.html" class="active" aria-current="page">Process Benefits</a>
-    <a href="#">Manage Profiles</a>
-    <a href="#">Audit Reports</a>
-  </nav>
-  <nav class="nav logout"><a href="#">Logout</a></nav>
-</aside>
+<body data-page="benefits" data-title="Process Benefits" data-subtitle="Search a senior, select the benefits to release, and confirm the cash payout.">
 
 <main>
-  <div class="page-head">
-    <div>
-      <h1>Process Benefits</h1>
-      <p class="sub">Search a senior, select the benefits to release, and confirm the cash payout.</p>
-    </div>
-    <span class="badge-official">Official Registry</span>
-  </div>
-
   <section class="card search-card">
     <label class="label" for="searchInput">Search Criteria</label>
     <div class="search-row">
@@ -190,6 +119,7 @@
   </div>
 </dialog>
 
+<script src="/js/layout.js"></script>
 <script>
   const $ = id => document.getElementById(id);
   const peso = n => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
@@ -218,6 +148,10 @@
 
   function renderBenefits() {
     const { benefits, selected, senior } = state;
+    if (benefits.length === 0) {
+      showState('', 'No benefits assigned', `${senior.full_name} (${senior.senior_id}) has no benefits listed for this year.`);
+      return;
+    }
     const availableCount = benefits.filter(b => b.status !== 'Claimed').length;
 
     const rows = benefits.map(b => {

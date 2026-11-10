@@ -1,0 +1,100 @@
+<!--NOTE: JUST COPY THIS CODE TO YOUR OWN HTML FILE... THIS WILL SERVE AS A TEMPLATE WITH ALREADY MADE LAYOUT FOR EASY DEVELOPMENT -->
+<!-- 
+
+Hello guys! I made a shared layout (same sidebar + header on every page) so we don't each copy our own. Here's how to use it:
+
+FILES YOU NEED (inside public/)
+- css/layout.css
+- js/layout.js
+- page_template.html (the starting point)
+
+STEPS
+1. Copy page_template.html (this file) and rename it to your page (e.g. manage_profiles.html)
+2. On the <body> tag, set your page info. That is going to be the header title inside your html:
+   <body data-page="profiles" data-title="Manage Profiles" data-subtitle="Short description here.">  
+
+3. Delete your own sidebar and header code (if exists, usually this doesn't exists so just ignore if you have found nothing, else just notify me). The layout adds them automatically. 
+4. Put your page content inside <main> ... </main>
+5. Put your own CSS in the page's <style> tag and your own JS in the last <script> tag
+6. Change the <title> tag below to your page name (this is the text shown on the browser tab)
+7. After copying, delete this whole instruction comment from your own page so it doesn't stay there
+
+DATA-PAGE VALUES (this highlights the menu item)
+dashboard | register | benefits | profiles | reports
+
+TIPS
+- Use the colors from layout.css like var(--blue) and var(--navy) instead of typing hex codes
+- Use the shared .card and .btn classes for cards and buttons  (can be found in layout.css)
+- Don't edit layout.css or layout.js yourself so our design stay consistent.
+- If something needs changing in layout.css or layout.js, just ask me
+- Don't forget to change data-page in the <body> tag, otherwise the wrong menu item stays highlighted
+- Open your page at http://localhost:5000/yourpage.html (not by double-clicking the file)
+- Please ask me if there was any mistake or needed some changes.
+
+process_benefit.html is a finished example if you want to see how it looks.
+
+
+-->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Title | Senior Citizen System</title>
+<link rel="stylesheet" href="/css/layout.css">
+<style>
+  /* Page-specific CSS only. Colors and buttons come from layout.css */
+</style>
+</head>
+
+
+
+<!--
+
+This will apply below right here
+      <body data-page="dashboard" data-title="Page Title" data-subtitle="One line describing what this page does.">
+
+What to put in the <body> tag:
+
+  1. --- > data-page     must match an "id" in the NAV list of js/layout.js (highlights the menu item)
+
+  Check layout.js for the NAV list. The ids are:
+  dashboard | register | benefits | profiles | reports
+
+(function () {
+  const NAV = [
+    { id: 'dashboard', label: 'Dashboard',        href: '/index.html' },
+    { id: 'register',  label: 'Register Senior',  href: '/register_citizen.html' },
+    { id: 'benefits',  label: 'Process Benefits', href: '/process_benefit.html' },
+    { id: 'profiles',  label: 'Manage Profiles',  href: '/manage_profiles.html' },   // rename to match your file
+    { id: 'reports',   label: 'Audit Reports',    href: '/audit_reports.html' }      // rename to match your file
+  ];
+
+
+
+
+
+
+  2. --- > data-title      big heading shown at the top of the page
+  3. --- > data-subtitle   one line under the heading (optional)
+
+  
+-->
+<body data-page="dashboard" data-title="Page Title" data-subtitle="One line describing what this page does.">
+
+<main>
+  <!-- Your page content goes here. The title and sidebar are added automatically. -->
+  <section class="card" style="padding: 20px;">
+    Hello everyone!
+  </section>
+</main>
+
+<script src="/js/layout.js"></script>
+<script>
+  // Page-specific JavaScript goes here.
+</script>
+</body>
+</html>

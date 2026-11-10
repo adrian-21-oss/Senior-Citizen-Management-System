@@ -1,3 +1,7 @@
+// THIS IS THE BACKEND SERVER (Node.js + Express + PostgreSQL) FOR THE SENIOR CITIZEN MANAGEMENT SYSTEM (SCMS)
+// YOU WILL PUT YOUR BACKEND ROUTES HERE. THE FRONTEND IS IN THE "public" FOLDER, AND IT USES AJAX TO CALL THESE ROUTES.
+
+
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -21,14 +25,14 @@ const pool = new Pool({
     port: process.env.DB_PORT,
 });
 
-// Test Database Connection Route
+// Test Database Connection Route -- This will test if the backend can connect to the database (your local database pgAdmin). You can call it by visiting http://localhost:5000/api/test-db in your browser or using Postman. 
 app.get('/api/test-db', async (req, res) => {
     try {
         const result = await pool.query('SELECT NOW()');
-        res.json({ status: 'Success', database_time: result.rows[0].now });
+        res.json({ status: 'Success', database_time: result.rows[0].now }); // Connected
     } catch (err) {
         console.error('Database connection error:', err);
-        res.status(500).json({ error: 'Database connection failed' });
+        res.status(500).json({ error: 'Database connection failed' }); // Not Connected
     }
 });
 
@@ -37,7 +41,7 @@ app.get('/api/test-db', async (req, res) => {
 
 
 
-// Auto-Generate Next Senior ID Route (e.g., SC-2026-0001)
+// Auto-Generate Next Senior ID Route (e.g., SC-2026-0001)   FEEL FREE TO CHANGE EVERYTHING IF YOU WANT, SPECIALLY IF YOU ARE ASSIGNED TO THIS PART (Index.html). THIS IS JUST AN EXAMPLE.
 app.get('/api/senior/next-id', async (req, res) => {
     try {
         const currentYear = new Date().getFullYear();
@@ -57,8 +61,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`SCMS Backend running smoothly on http://localhost:${PORT}`);
 });
-
-
 
 
 
@@ -121,7 +123,7 @@ app.get('/api/benefits/senior/:seniorId', async (req, res) => {
                     b.benefit_name,
                     b.period_description,
                     b.amount,
-                    COALESCE(bt.claim_status, 'Available') AS status
+                    bt.claim_status AS status
              FROM benefit b
              JOIN benefit_transaction bt
                     ON bt.benefit_id = b.benefit_id
@@ -163,28 +165,29 @@ app.post('/api/benefits/release', async (req, res) => {
 
         let total = 0;
         for (const id of ids) {
-            // Amount comes from the benefit table, never from the browser.
-            // Needs UNIQUE (senior_id, benefit_id, benefit_year) on benefit_transaction.
+            // Only an existing 'Available' row can be claimed. Amount comes from the
+            // benefit table, never from the browser.
             const r = await client.query(
-                `INSERT INTO benefit_transaction
-                    (senior_id, benefit_id, benefit_year, admin_id, claim_status, amount_released, released_on)
-                 SELECT $1, b.benefit_id, b.benefit_year, $2, 'Claimed', b.amount, NOW()
+                `UPDATE benefit_transaction bt
+                 SET claim_status    = 'Claimed',
+                     admin_id        = $2,
+                     amount_released = b.amount,
+                     released_on     = NOW()
                  FROM benefit b
-                 WHERE b.benefit_id = $3 AND b.benefit_year = $4
-                 ON CONFLICT (senior_id, benefit_id, benefit_year) DO UPDATE
-                    SET claim_status    = 'Claimed',
-                        admin_id        = EXCLUDED.admin_id,
-                        amount_released = EXCLUDED.amount_released,
-                        released_on     = EXCLUDED.released_on
-                    WHERE benefit_transaction.claim_status <> 'Claimed'
-                 RETURNING amount_released`,
+                 WHERE b.benefit_id   = bt.benefit_id
+                   AND b.benefit_year = bt.benefit_year
+                   AND bt.senior_id    = $1
+                   AND bt.benefit_id   = $3
+                   AND bt.benefit_year = $4
+                   AND bt.claim_status = 'Available'
+                 RETURNING bt.amount_released`,
                 [senior_id, ADMIN_ID, id, benefitYear()]
             );
 
             if (r.rowCount === 0) {
-                // Either already claimed, or the benefit doesn't exist this year
+                // Already claimed, or not assigned to this senior
                 throw Object.assign(
-                    new Error('One or more selected benefits were already claimed. Search again to refresh.'),
+                    new Error('One or more selected benefits are already claimed or not assigned to this senior. Search again to refresh.'),
                     { status: 409 }
                 );
             }
