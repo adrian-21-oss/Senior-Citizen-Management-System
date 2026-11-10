@@ -213,13 +213,14 @@ DB_PORT=5432
 
 
 5. Run the Application
-Development Mode (with auto-reload):
+Development Mode (with auto-reload): (Terminal/Bash/Terminal inside VSC)
 
-Bash
 npm run dev
+
+
+
 Production / Final Run Mode:
 
-Bash
 npm start
 
 
