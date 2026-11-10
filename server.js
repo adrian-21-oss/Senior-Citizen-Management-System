@@ -32,6 +32,11 @@ app.get('/api/test-db', async (req, res) => {
     }
 });
 
+
+
+
+
+
 // Auto-Generate Next Senior ID Route (e.g., SC-2026-0001)
 app.get('/api/senior/next-id', async (req, res) => {
     try {
