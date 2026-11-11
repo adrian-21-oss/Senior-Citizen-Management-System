@@ -16,9 +16,23 @@
   .invalid { border-color: var(--red-ink); } .foot { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
   .msg { flex: 1; font-size: 12px; color: var(--muted); } .msg.err { color: var(--red-ink); } .msg.ok { color: var(--green-ink); }
   .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); } .btn.ghost:hover:not(:disabled) { background: var(--row); }
-  .fp { height: 190px; margin: 14px 0; border-radius: 14px; background: var(--row); display: grid; place-items: center; color: #9db4d1; }
-  .fp svg { width: 120px; } .fp.scanning { color: var(--blue); animation: pulse 1s infinite alternate; } .fp.done { color: var(--green-ink); }
-  @keyframes pulse { to { opacity: .4; } }
+  
+  /* Restored YOUR original layout structure, just with the dark background */
+  .fp { height: 190px; margin: 14px 0; border-radius: 14px; display: grid; place-items: center; background: #0f1117 !important; border: 1px solid #1e293b; }
+  .fp svg { width: 140px; height: 140px; overflow: visible; }
+  
+  /* The new animations */
+  .fp.scanning .ring-pulse { animation: pulse-ring 2s ease-in-out infinite; transform-origin: 80px 80px; }
+  .fp.scanning .ring-pulse-2 { animation: pulse-ring 2s ease-in-out infinite 0.6s; transform-origin: 80px 80px; }
+  @keyframes pulse-ring { 0% { opacity: 0.9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.3); } }
+  
+  .fp.error .shake { animation: shake 0.5s ease-in-out 0.2s both; transform-origin: 80px 80px; }
+  @keyframes shake { 0%, 100% { transform: rotate(0deg); } 20%, 60% { transform: rotate(-6deg); } 40%, 80% { transform: rotate(6deg); } }
+  
+  .fp.done .check-draw { stroke-dasharray: 28; stroke-dashoffset: 28; animation: draw-check 0.45s ease-out 0.3s forwards; }
+  @keyframes draw-check { to { stroke-dashoffset: 0; } }
+
+  /* Kept your original bottom tags intact */
   .status { padding: 10px 12px; border-radius: 10px; background: var(--row); font-size: 13px; margin-bottom: 12px; }
   .status.done { background: var(--green-bg); color: var(--green-ink); } .muted { color: var(--muted); font-size: 13px; margin: 0; }
   @media (max-width: 900px) { .grid, .fields { grid-template-columns: 1fr; } }
@@ -46,6 +60,8 @@
         <label class="full">Relationship (optional)<input name="emergency_relationship" placeholder="e.g. Daughter"></label>
         <label class="full">Notes (optional)<textarea name="notes" rows="3"></textarea></label>
       </div>
+      
+      <!-- ENROLL FINGERPRINT -->
       <div class="foot">
         <span class="msg" id="msg">Save the profile first, then capture the fingerprint.</span>
         <button type="reset" class="btn ghost" id="cancel">Cancel</button>
@@ -55,7 +71,7 @@
     <aside class="card pad">
       <h2>Biometric Enrollment</h2>
       <p class="muted">Capture the fingerprint after the profile has been saved.</p>
-      <div class="fp" id="fp"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="50" cy="50" r="6"/><circle cx="50" cy="50" r="14"/><circle cx="50" cy="50" r="22"/><circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="38"/></g></svg></div>
+      <div class="fp" id="fp"><svg viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="4" fill="#94a3b8"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#7c8fa3" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
       <div class="status" id="status">Waiting for a saved profile</div>
       <button class="btn" id="scan" style="width:100%" disabled>Initiate Fingerprint Scan</button>
     </aside>
@@ -69,7 +85,21 @@
   const REQUIRED = ['first_name', 'last_name', 'sex', 'date_of_birth', 'civil_status', 'street_address', 'barangay', 'city_municipality', 'emergency_contact'];
   let savedId = null;
   const msg = (t, cls = '') => { $('msg').textContent = t; $('msg').className = 'msg ' + cls; };
-  const fp = (state, text) => { $('fp').className = 'fp ' + state; $('status').className = 'status ' + (state === 'done' ? 'done' : ''); $('status').textContent = text; };
+  const fp = (state, text) => { 
+    $('fp').className = 'fp ' + state; 
+    $('status').className = 'status ' + (state === 'done' ? 'done' : (state === 'error' ? 'err' : '')); 
+    $('status').textContent = text; 
+    
+    if (state === 'scanning') {
+      $('fp').innerHTML = `<svg viewBox="0 0 160 160" fill="none"><circle class="ring-pulse" cx="80" cy="80" r="70" stroke="#38bdf8" stroke-width="1.5" fill="none" opacity="0.6"/><circle class="ring-pulse-2" cx="80" cy="80" r="70" stroke="#38bdf8" stroke-width="1.5" fill="none" opacity="0.4"/><circle cx="80" cy="80" r="66" stroke="#1e4a6b" stroke-width="1" fill="none"/><circle cx="80" cy="80" r="4" fill="#38bdf8"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#38bdf8" stroke-width="2.2" fill="none"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#38bdf8" stroke-width="2.2" fill="none"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#38bdf8" stroke-width="2.2" fill="none"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#38bdf8" stroke-width="2.2" fill="none"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#38bdf8" stroke-width="2" fill="none"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#0ea5e9" stroke-width="2" fill="none"/></svg>`;
+    } else if (state === 'done') {
+      $('fp').innerHTML = `<svg viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="4" fill="#4ade80"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#4ade80" stroke-width="2.2" fill="none"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#4ade80" stroke-width="2.2" fill="none"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#4ade80" stroke-width="2.2" fill="none"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#4ade80" stroke-width="2.2" fill="none"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#4ade80" stroke-width="2" fill="none"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#22c55e" stroke-width="2" fill="none"/><circle cx="118" cy="118" r="18" fill="#071a10" stroke="#4ade80" stroke-width="1.5"/><polyline class="check-draw" points="110,118 116,124 127,112" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`;
+    } else if (state === 'error') {
+      $('fp').innerHTML = `<svg viewBox="0 0 160 160" fill="none"><g class="shake"><circle cx="80" cy="80" r="4" fill="#f87171"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#f87171" stroke-width="2.2" fill="none"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#f87171" stroke-width="2.2" fill="none"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#f87171" stroke-width="2.2" fill="none"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#f87171" stroke-width="2.2" fill="none"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#f87171" stroke-width="2" fill="none"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#ef4444" stroke-width="2" fill="none"/></g><circle cx="118" cy="118" r="18" fill="#1a0a0a" stroke="#f87171" stroke-width="1.5"/><line x1="111" y1="111" x2="125" y2="125" stroke="#f87171" stroke-width="2.8" stroke-linecap="round"/><line x1="125" y1="111" x2="111" y2="125" stroke="#f87171" stroke-width="2.8" stroke-linecap="round"/></svg>`;
+    } else {
+      $('fp').innerHTML = `<svg viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="4" fill="#94a3b8"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#94a3b8" stroke-width="2.2" fill="none"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#94a3b8" stroke-width="2.2" fill="none"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#94a3b8" stroke-width="2.2" fill="none"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#94a3b8" stroke-width="2.2" fill="none"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#94a3b8" stroke-width="2" fill="none"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#7c8fa3" stroke-width="2" fill="none"/></svg>`;
+    }
+  };
   const reset = () => { savedId = null; $('scan').disabled = true; $('save').disabled = false; fp('', 'Waiting for a saved profile'); msg('Save the profile first, then capture the fingerprint.'); };
 
   // Only Admin and Registration Staff can register seniors.
@@ -87,8 +117,9 @@
     try {
       const r = await Auth.api('/seniors', { method: 'POST', body: Object.fromEntries(new FormData(form)) });
       savedId = r.senior_id; $('scan').disabled = false;
-      msg(`Saved as ${savedId}. Now capture the fingerprint.`, 'ok'); fp('', `${savedId} is ready for fingerprint capture`);
-    } catch (err) { msg(err.message, 'err'); $('save').disabled = false; }
+      msg(`Saved as ${savedId}. Now capture the fingerprint.`, 'ok'); 
+      fp('', `Profile saved! Ready for fingerprint scan.`);
+    } catch (err) { fp('error', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }
   });
 
   // The scan is simulated until a scanner SDK is connected; the enrollment is saved for real.
@@ -100,7 +131,7 @@
       await Auth.api(`/seniors/${encodeURIComponent(savedId)}/biometric`, { method: 'POST', body: {} });
       fp('done', `Fingerprint enrolled for ${savedId}`); msg('Registration complete.', 'ok');
       setTimeout(() => { form.reset(); }, 2500);
-    } catch (err) { fp('', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }
+    } catch (err) { fp('error', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }
   });
 </script>
 </body>
