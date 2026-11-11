@@ -207,5 +207,4 @@ app.post('/api/benefits/release', async (req, res) => {
         client.release();
     }
 });
-// Senior Registry (Dashboard, Register, Profiles, Audit)
-app.use('/api', require('./registry-routes'));
+   app.use('/api', require('./scms-routes'));

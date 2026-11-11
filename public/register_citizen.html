@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register Senior | Senior Citizen System</title>
+<link rel="stylesheet" href="/css/layout.css">
+<style>
+  .grid { display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px; align-items: start; }
+  .card.pad { padding: 22px; } h2 { margin: 0 0 14px; font-size: 15px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; font-weight: 600; }
+  input, select, textarea { width: 100%; margin-top: 5px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: var(--row); }
+  input { height: 42px; padding-top: 0; padding-bottom: 0; } input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); background: #fff; }
+  .invalid { border-color: var(--red-ink); } .foot { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .msg { flex: 1; font-size: 12px; color: var(--muted); } .msg.err { color: var(--red-ink); } .msg.ok { color: var(--green-ink); }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); } .btn.ghost:hover:not(:disabled) { background: var(--row); }
+  .fp { height: 190px; margin: 14px 0; border-radius: 14px; background: var(--row); display: grid; place-items: center; color: #9db4d1; }
+  .fp svg { width: 120px; } .fp.scanning { color: var(--blue); animation: pulse 1s infinite alternate; } .fp.done { color: var(--green-ink); }
+  @keyframes pulse { to { opacity: .4; } }
+  .status { padding: 10px 12px; border-radius: 10px; background: var(--row); font-size: 13px; margin-bottom: 12px; }
+  .status.done { background: var(--green-bg); color: var(--green-ink); } .muted { color: var(--muted); font-size: 13px; margin: 0; }
+  @media (max-width: 900px) { .grid, .fields { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-page="register" data-title="Register Senior" data-subtitle="Create a new senior profile and capture biometric enrollment.">
+<main>
+  <div class="grid">
+    <form class="card pad" id="form" novalidate>
+      <h2>Senior Registration</h2>
+      <div class="fields">
+        <label>First name<input name="first_name" required></label>
+        <label>Middle name<input name="middle_name"></label>
+        <label>Last name<input name="last_name" required></label>
+        <label>Sex<select name="sex" required><option value="">Select sex</option><option>Female</option><option>Male</option></select></label>
+        <label>Date of birth<input type="date" name="date_of_birth" required></label>
+        <label>Civil status<select name="civil_status" required><option value="">Select civil status</option><option>Single</option><option>Married</option><option>Widowed</option><option>Separated</option></select></label>
+        <label>Mobile number (optional)<input name="mobile_number" inputmode="numeric" maxlength="11" placeholder="09XXXXXXXXX"></label>
+        <label>Email (optional)<input type="email" name="email"></label>
+        <label class="full">Street address<input name="street_address" required></label>
+        <label>Barangay<input name="barangay" required></label>
+        <label>City / municipality<input name="city_municipality" required></label>
+        <label>National ID / OSCA ID (optional)<input name="national_id"></label>
+        <label>Emergency contact<input name="emergency_contact" required></label>
+        <label class="full">Relationship (optional)<input name="emergency_relationship" placeholder="e.g. Daughter"></label>
+        <label class="full">Notes (optional)<textarea name="notes" rows="3"></textarea></label>
+      </div>
+      <div class="foot">
+        <span class="msg" id="msg">Save the profile first, then capture the fingerprint.</span>
+        <button type="reset" class="btn ghost" id="cancel">Cancel</button>
+        <button class="btn" id="save">Save</button>
+      </div>
+    </form>
+    <aside class="card pad">
+      <h2>Biometric Enrollment</h2>
+      <p class="muted">Capture the fingerprint after the profile has been saved.</p>
+      <div class="fp" id="fp"><svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="50" cy="50" r="6"/><circle cx="50" cy="50" r="14"/><circle cx="50" cy="50" r="22"/><circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="38"/></g></svg></div>
+      <div class="status" id="status">Waiting for a saved profile</div>
+      <button class="btn" id="scan" style="width:100%" disabled>Initiate Fingerprint Scan</button>
+    </aside>
+  </div>
+</main>
+<script src="/js/auth.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+  Auth.hookLogout();
+  const $ = id => document.getElementById(id), form = $('form');
+  const REQUIRED = ['first_name', 'last_name', 'sex', 'date_of_birth', 'civil_status', 'street_address', 'barangay', 'city_municipality', 'emergency_contact'];
+  let savedId = null;
+  const msg = (t, cls = '') => { $('msg').textContent = t; $('msg').className = 'msg ' + cls; };
+  const fp = (state, text) => { $('fp').className = 'fp ' + state; $('status').className = 'status ' + (state === 'done' ? 'done' : ''); $('status').textContent = text; };
+  const reset = () => { savedId = null; $('scan').disabled = true; $('save').disabled = false; fp('', 'Waiting for a saved profile'); msg('Save the profile first, then capture the fingerprint.'); };
+
+  // Only Admin and Registration Staff can register seniors.
+  const role = (Auth.user() || {}).role;
+  if (role === 'Benefits Staff') { $('save').disabled = true; msg('Your role (Benefits Staff) cannot register seniors.', 'err'); }
+
+  form.addEventListener('input', e => e.target.classList.remove('invalid'));
+  form.addEventListener('reset', () => { form.querySelectorAll('.invalid').forEach(f => f.classList.remove('invalid')); reset(); });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    let ok = true;
+    REQUIRED.forEach(n => { const f = form.elements[n], bad = !f.value.trim(); f.classList.toggle('invalid', bad); if (bad) ok = false; });
+    if (!ok) return msg('Fill in the highlighted fields.', 'err');
+    $('save').disabled = true;
+    try {
+      const r = await Auth.api('/seniors', { method: 'POST', body: Object.fromEntries(new FormData(form)) });
+      savedId = r.senior_id; $('scan').disabled = false;
+      msg(`Saved as ${savedId}. Now capture the fingerprint.`, 'ok'); fp('', `${savedId} is ready for fingerprint capture`);
+    } catch (err) { msg(err.message, 'err'); $('save').disabled = false; }
+  });
+
+  // The scan is simulated until a scanner SDK is connected; the enrollment is saved for real.
+  $('scan').addEventListener('click', async () => {
+    if (!savedId) return;
+    $('scan').disabled = true; fp('scanning', 'Scanning…');
+    await new Promise(r => setTimeout(r, 1500));
+    try {
+      await Auth.api(`/seniors/${encodeURIComponent(savedId)}/biometric`, { method: 'POST', body: {} });
+      fp('done', `Fingerprint enrolled for ${savedId}`); msg('Registration complete.', 'ok');
+      setTimeout(() => { form.reset(); }, 2500);
+    } catch (err) { fp('', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }
+  });
+</script>
+</body>
+</html>

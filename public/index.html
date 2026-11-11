@@ -1,94 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Senior Citizen System</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard | Senior Citizen System</title>
+<link rel="stylesheet" href="/css/layout.css">
+<style>
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-top: 20px; }
+  .metric { margin: 0; padding: 18px 20px; background: var(--row); }
+  .metric span { font-size: 12px; color: var(--muted); } .metric strong { display: block; font-size: 30px; margin: 6px 0 2px; } .metric small { color: var(--muted); font-size: 12px; }
+  h2 { font-size: 15px; margin: 28px 0 0; }
+  .actions { margin-top: 12px; } .actions a { display: inline-flex; align-items: center; text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; } th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  th { background: var(--row); color: var(--muted); font-size: 12px; } tr:last-child td { border-bottom: 0; } .card.tbl { overflow-x: auto; margin-top: 12px; }
+  .bad { color: var(--red-ink); } .muted { color: var(--muted); }
+</style>
 </head>
-<body>
-  <!-- Sidebar navigation -->
-  <aside class="sidebar">
-    <div class="brand"><span class="brand-mark"></span><div><strong>Senior Citizen System</strong><small>Senior Registry</small></div></div>
-    <nav>
-      <button class="nav-link active" data-view="dashboard">Dashboard</button>
-      <button class="nav-link" data-view="register">Register Senior</button>
-      <button class="nav-link" data-view="benefits">Process Benefits</button>
-      <button class="nav-link" data-view="profiles">Manage Profiles</button>
-      <button class="nav-link" data-view="audit">Audit Reports</button>
-    </nav>
-    <button class="nav-link logout" id="logout">Logout</button>
-  </aside>
-
-  <main class="content">
-    <!-- Dashboard view -->
-    <section class="view active" id="view-dashboard">
-      <h1>Dashboard</h1>
-      <div class="metrics">
-        <div class="card metric"><span>Registered Users</span><strong id="m-users">–</strong><small id="m-users-sub"></small></div>
-        <div class="card metric"><span>Biometric Enrolled</span><strong id="m-bio">–</strong><small id="m-bio-sub"></small></div>
-        <div class="card metric"><span>Benefits Pending</span><strong id="m-ben">–</strong><small id="m-ben-sub"></small></div>
-        <div class="card metric"><span>Failed Scans Today</span><strong id="m-fail">–</strong><small>Retry from Manage Profiles</small></div>
-      </div>
-      <h2>Quick Actions</h2>
-      <div class="actions">
-        <button class="btn btn-dark btn-lg" data-view="register">Register &amp; Enroll New Senior</button>
-        <button class="btn btn-dark btn-lg" id="verify">Verify Identity (Scan Fingerprint)</button>
-      </div>
-      <h2>Recent Activity</h2>
-      <div class="card table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Action</th><th>Date</th></tr></thead>
-          <tbody id="activity-body"><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Register Senior view -->
-    <section class="view" id="view-register">
-      <h1>Register Senior</h1>
-      <p class="muted">Create a new senior profile and capture biometric enrollment.</p>
-      <div class="register-grid">
-        <form class="card" id="register-form" novalidate>
-          <h2>Senior Registration</h2>
-          <div class="form-grid">
-            <label>First Name<input name="firstName" placeholder="First Name" required></label>
-            <label>Middle Name<input name="middleName" placeholder="Middle Name"></label>
-            <label>Last Name<input name="lastName" placeholder="Last Name" required></label>
-            <label>Gender<select name="gender" required><option value="">Select gender</option><option>Female</option><option>Male</option><option>Other</option></select></label>
-            <label>Date of Birth<input type="date" name="dob" required></label>
-            <label>Contact Number<input name="contact" placeholder="+63"></label>
-            <label>Residential Address<input name="address" placeholder="Street address" required></label>
-            <label>City<input name="city" placeholder="City" required></label>
-            <label>National ID / Passport<input name="idNumber" placeholder="Enter ID Number" required></label>
-            <label>Civil Status<select name="civilStatus" required><option value="">Select Civil Status</option><option>Single</option><option>Married</option><option>Widowed</option><option>Separated</option></select></label>
-          </div>
-          <label class="full">Notes<textarea name="notes" rows="3" placeholder="Add any additional notes or special instructions"></textarea></label>
-          <div class="form-footer">
-            <span class="muted" id="form-msg">Required fields must be completed before initiating fingerprint scan.</span>
-            <button type="reset" class="btn btn-ghost" id="cancel">Cancel</button>
-            <button type="submit" class="btn btn-dark">Save</button>
-          </div>
-        </form>
-
-        <aside class="card">
-          <h2>Biometric Enrollment</h2>
-          <p class="muted">Capture the senior's fingerprint after the registration details have been saved.</p>
-          <div class="fingerprint" id="fp-box">
-            <svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="50" cy="50" r="6"/><circle cx="50" cy="50" r="14"/><circle cx="50" cy="50" r="22"/><circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="38"/></g></svg>
-          </div>
-          <div class="status" id="fp-status"><span class="dot"></span><span id="fp-text">Ready for fingerprint capture</span></div>
-          <button class="btn btn-dark btn-block" id="scan-btn">Initiate Fingerprint Scan</button>
-        </aside>
-      </div>
-    </section>
-
-    <!-- Placeholder views for modules not yet built -->
-    <section class="view" id="view-benefits"><h1>Process Benefits</h1><p class="muted">This module is not built yet.</p></section>
-    <section class="view" id="view-profiles"><h1>Manage Profiles</h1><p class="muted">This module is not built yet.</p></section>
-    <section class="view" id="view-audit"><h1>Audit Reports</h1><p class="muted">This module is not built yet.</p></section>
-  </main>
-  <div class="toast" id="toast" role="status"></div>
-  <script src="assets/js/app.js"></script>
+<body data-page="dashboard" data-title="Dashboard" data-subtitle="Registrations, biometric enrollment and latest activity.">
+<main>
+  <div class="metrics">
+    <div class="card metric"><span>Registered Seniors</span><strong id="m-reg">–</strong><small id="m-reg-s"></small></div>
+    <div class="card metric"><span>Biometric Enrolled</span><strong id="m-bio">–</strong><small id="m-bio-s"></small></div>
+    <div class="card metric"><span>Benefits Available to Claim</span><strong id="m-ben">–</strong><small>This year's unclaimed benefits</small></div>
+    <div class="card metric"><span>Failed Scans Today</span><strong id="m-fail">–</strong><small>Failed enrollments</small></div>
+  </div>
+  <h2>Quick Actions</h2>
+  <div class="actions"><a class="btn" href="/register_citizen.html">Register &amp; Enroll New Senior</a></div>
+  <h2>Recent Activity</h2>
+  <div class="card tbl"><table>
+    <thead><tr><th>Name</th><th>Action</th><th>Result</th><th>Date</th></tr></thead>
+    <tbody id="act"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+  </table></div>
+</main>
+<script src="/js/auth.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+  Auth.hookLogout();
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const when = iso => { const d = Math.floor((Date.now() - new Date(iso)) / 864e5); return d < 1 ? 'Today' : d === 1 ? 'Yesterday' : d + ' days ago'; };
+  (async () => {
+    try {
+      const [s, a] = await Promise.all([Auth.api('/dashboard/stats'), Auth.api('/dashboard/activity')]);
+      $('m-reg').textContent = s.registered.toLocaleString(); $('m-reg-s').textContent = s.newThisWeek + ' new this week';
+      $('m-bio').textContent = s.enrolled.toLocaleString(); $('m-bio-s').textContent = s.enrollmentRate + '% of registered seniors';
+      $('m-ben').textContent = s.benefitsPending; $('m-fail').textContent = s.failedScans;
+      $('act').innerHTML = a.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.action)}</td><td class="${r.result === 'Failed' ? 'bad' : ''}">${esc(r.result)}</td><td>${when(r.at)}</td></tr>`).join('')
+        || '<tr><td colspan="4" class="muted">No activity yet.</td></tr>';
+    } catch (e) { $('act').innerHTML = `<tr><td colspan="4" class="bad">${esc(e.message)}</td></tr>`; }
+  })();
+</script>
 </body>
 </html>
