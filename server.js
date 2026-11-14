@@ -6,6 +6,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 require('dotenv').config();
+const path = require('path');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Serve static frontend files from the "public" folder
 app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // PostgreSQL Connection Pool Setup
 const pool = new Pool({

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manage Senior Profile | Senior Citizen System</title>
+<link rel="stylesheet" href="/css/layout.css">
+<style>
+  [hidden] { display: none !important; }
+  .crumbs { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .crumbs a { color: var(--muted); text-decoration: none; } .crumbs a:hover { text-decoration: underline; }
+  .crumbs b { color: var(--ink); font-weight: 500; }
+  .card.pad { padding: 22px; }
+  h2 { margin: 0 0 14px; font-size: 15px; }
+  .muted { color: var(--muted); font-size: 13px; } .bad { color: var(--red-ink); }
+
+  /* Forms */
+  label { display: block; font-size: 12px; font-weight: 600; }
+  input, select { width: 100%; margin-top: 5px; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: var(--row); }
+  input:focus, select:focus { outline: 2px solid var(--blue); background: #fff; }
+  .invalid { border-color: var(--red-ink); }
+  .ferr { display: block; min-height: 15px; margin-top: 3px; font-size: 11px; font-weight: 500; color: var(--red-ink); }
+  .hint { margin: 8px 2px 0; font-size: 12px; color: var(--muted); } .hint.err { color: var(--red-ink); }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); } .btn.ghost:hover:not(:disabled) { background: var(--row); }
+  .btn.small { height: 32px; padding: 0 18px; font-size: 12px; }
+  .btn.green { background: var(--green-ink); } .btn.green:hover:not(:disabled) { background: #277640; }
+
+  /* Search */
+  .search-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .search-row .grow { flex: 1; min-width: 220px; } .search-row .brgy { width: 190px; }
+  .tbl { overflow-x: auto; padding: 0; }
+  .count { padding: 14px 18px 4px; font-size: 13px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  th { background: var(--row); color: var(--muted); font-size: 12px; } tr:last-child td { border-bottom: 0; }
+  .pill { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .pill.Active { background: var(--green-bg); color: var(--green-ink); }
+  .pill.Inactive { background: var(--red-bg); color: var(--red-ink); }
+  .pill.Deceased { background: #e8ecf1; color: var(--muted); }
+  .empty { text-align: center; padding: 56px 20px; }
+  .empty .icon { width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; background: var(--red-bg); color: var(--red-ink); font-size: 24px; font-weight: 700; }
+  .empty h3 { margin: 0 0 6px; font-size: 16px; } .empty p { margin: 0 0 16px; }
+
+  /* Profile */
+  .head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--red-bg); color: var(--red-ink); display: grid; place-items: center; font-weight: 700; }
+  .head .who { flex: 1; min-width: 200px; } .head .who strong { display: block; font-size: 18px; }
+  .head .who span { font-size: 12px; color: var(--muted); margin-right: 8px; }
+  .head .btns { display: flex; gap: 10px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; } .cols .card { margin-top: 0; }
+  .info { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 24px; margin: 0; }
+  .info dt { font-size: 11px; color: var(--muted); } .info dd { margin: 3px 0 0; font-size: 13px; font-weight: 600; word-break: break-word; }
+  .info.four { grid-template-columns: repeat(4, 1fr); }
+
+  /* Edit form */
+  .section { margin: 0 0 4px; padding-bottom: 6px; font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--line); }
+  .fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 16px; margin: 12px 0 20px; }
+  .span2 { grid-column: span 2; }
+  .foot { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+  .banner { padding: 8px 14px; border-radius: 10px; background: var(--red-bg); color: var(--red-ink); font-size: 12px; font-weight: 600; margin-bottom: 14px; }
+
+  /* Dialog */
+  dialog { border: 0; border-radius: 18px; padding: 0; width: min(420px, 92vw); color: var(--ink); box-shadow: 0 20px 60px rgba(23,48,79,.3); }
+  dialog::backdrop { background: rgba(23,48,79,.45); }
+  .modal { padding: 30px 30px 24px; text-align: center; }
+  .modal .tick { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; background: var(--green-bg); color: var(--green-ink); font-size: 22px; font-weight: 700; }
+  .modal h2 { margin: 0 0 8px; font-size: 20px; } .modal p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 900px) { .cols, .fields, .info.four { grid-template-columns: 1fr; } .span2 { grid-column: auto; } }
+</style>
+</head>
+<body data-page="profiles" data-title="Manage Senior Profile" data-subtitle="Search for a registered senior citizen to review or update their record.">
+<main>
+
+  <!-- VIEW 1: SEARCH -->
+  <section id="view-search">
+    <form class="card pad" id="search-form" novalidate>
+      <h2>Search Criteria</h2>
+      <div class="search-row">
+        <label class="grow">Name or Senior ID
+          <input type="search" id="q" maxlength="100" autocomplete="off" placeholder="e.g. Maria Santos or SC-2026-00001">
+        </label>
+        <label class="brgy">Barangay
+          <select id="brgy"><option value="">All Barangays</option></select>
+        </label>
+        <button class="btn" id="go" type="submit">Search</button>
+      </div>
+      <p class="hint" id="search-msg">Search by full name or Senior ID (e.g. SC-2026-00123)</p>
+    </form>
+    <div id="results" hidden></div>
+  </section>
+
+  <!-- VIEW 2: PROFILE -->
+  <section id="view-profile" hidden>
+    <div class="card pad head">
+      <div class="avatar" id="p-avatar"></div>
+      <div class="who"><strong id="p-name"></strong><span id="p-sub"></span><span id="p-pill"></span></div>
+      <div class="btns">
+        <button class="btn ghost" id="back" type="button">Back</button>
+        <button class="btn" id="edit" type="button">Edit Profile</button>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="card pad"><h2>Personal Information</h2><dl class="info" id="p-personal"></dl></div>
+      <div class="card pad"><h2>Contact &amp; Address</h2><dl class="info" id="p-contact"></dl></div>
+    </div>
+    <div class="card pad"><h2>Account Status</h2><dl class="info four" id="p-account"></dl></div>
+  </section>
+
+  <!-- VIEW 3: EDIT -->
+  <section id="view-edit" hidden>
+    <form class="card pad" id="edit-form" novalidate>
+      <div class="banner" id="banner" role="alert" hidden></div>
+
+      <p class="section">Personal Information</p>
+      <div class="fields">
+        <label>First name<input name="first_name" maxlength="50"><small class="ferr"></small></label>
+        <label>Middle name<input name="middle_name" maxlength="50" placeholder="N/A"><small class="ferr"></small></label>
+        <label>Last name<input name="last_name" maxlength="50"><small class="ferr"></small></label>
+        <label>Date of birth<input type="date" name="date_of_birth"><small class="ferr"></small></label>
+        <label>Sex<select name="sex"><option value="">Select sex</option><option>Female</option><option>Male</option></select><small class="ferr"></small></label>
+        <label>Civil status<select name="civil_status"><option value="">Select civil status</option><option>Single</option><option>Married</option><option>Widowed</option><option>Separated</option></select><small class="ferr"></small></label>
+      </div>
+
+      <p class="section">Contact &amp; Address</p>
+      <div class="fields">
+        <label>Mobile number<input name="mobile_number" inputmode="numeric" maxlength="13" placeholder="09XXXXXXXXX"><small class="ferr"></small></label>
+        <label>Email<input type="email" name="email" maxlength="100"><small class="ferr"></small></label>
+        <label>Barangay<input name="barangay" maxlength="50" list="brgy-list" autocomplete="off"><small class="ferr"></small></label>
+        <label class="span2">Street address<input name="street_address" maxlength="100"><small class="ferr"></small></label>
+        <label>City / municipality<input name="city_municipality" maxlength="50"><small class="ferr"></small></label>
+      </div>
+      <datalist id="brgy-list"></datalist>
+
+      <p class="section">Emergency Contact</p>
+      <div class="fields">
+        <label class="span2">Emergency contact (next of kin)<input name="emergency_contact" maxlength="100"><small class="ferr"></small></label>
+        <label>Relationship<input name="emergency_relationship" maxlength="30" placeholder="e.g. Daughter"><small class="ferr"></small></label>
+      </div>
+
+      <p class="section">Account Status</p>
+      <div class="fields">
+        <label>Status<select name="status"><option>Active</option><option>Inactive</option><option>Deceased</option></select><small class="ferr"></small></label>
+        <div></div>
+        <div class="foot" style="align-self:end">
+          <button class="btn ghost" id="cancel" type="button">Cancel</button>
+          <button class="btn green" id="save" type="submit">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <dialog id="done">
+    <div class="modal">
+      <div class="tick">✓</div>
+      <h2 id="done-title">Profile Updated</h2>
+      <p id="done-text">The changes were saved and recorded in the update log.</p>
+      <button class="btn" id="done-ok" type="button">Back to Profile</button>
+    </div>
+  </dialog>
+
+</main>
+<script src="/js/auth.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+  Auth.hookLogout();
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const CAN_EDIT = ['Admin', 'Registration Staff'].includes((Auth.user() || {}).role);
+  const form = $('edit-form');
+  let current = null; // the senior currently open
+
+  const TITLES = {
+    search:  ['Manage Senior Profile', 'Search for a registered senior citizen to review or update their record.'],
+    profile: ['Senior Profile', 'Review the complete record of this senior citizen.'],
+    edit:    ['Edit Senior Profile', 'Update personal information, address, contact details or account status.']
+  };
+
+  // Breadcrumb goes above the page title that layout.js built
+  const crumbs = document.createElement('nav');
+  crumbs.className = 'crumbs'; crumbs.setAttribute('aria-label', 'Breadcrumb');
+  document.querySelector('main').prepend(crumbs);
+  crumbs.addEventListener('click', e => {
+    const a = e.target.closest('[data-go]'); if (!a) return;
+    e.preventDefault(); show(a.dataset.go);
+  });
+
+  function show(view) {
+    ['search', 'profile', 'edit'].forEach(v => { $('view-' + v).hidden = v !== view; });
+    const [title, sub] = TITLES[view];
+    document.querySelector('.page-head h1').textContent = title;
+    const subEl = document.querySelector('.page-head .sub'); if (subEl) subEl.textContent = sub;
+    const id = current ? esc(current.senior_id) : '';
+    crumbs.innerHTML = '<a href="/index.html">Home</a> / ' + (view === 'search'
+      ? '<b>Manage Senior Profile</b>'
+      : '<a href="#" data-go="search">Manage Senior Profile</a> / ' +
+        (view === 'profile' ? `<b>${id}</b>` : `<a href="#" data-go="profile">${id}</a> / <b>Edit</b>`));
+    window.scrollTo(0, 0);
+  }
+
+  const nameOf = s => `${s.last_name}, ${s.first_name}${s.middle_name ? ' ' + s.middle_name[0].toUpperCase() + '.' : ''}`;
+  const pill = st => `<span class="pill ${esc(st)}">${esc(st)}</span>`;
+  const phone = m => m ? m.replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3') : '';
+
+  /* ---------- Barangay list ---------- */
+  async function loadBarangays() {
+    try {
+      const { barangays } = await Auth.api('/seniors/barangays');
+      $('brgy').innerHTML = '<option value="">All Barangays</option>' + barangays.map(b => `<option>${esc(b)}</option>`).join('');
+      $('brgy-list').innerHTML = barangays.map(b => `<option value="${esc(b)}"></option>`).join('');
+    } catch { /* the filter simply stays on "All Barangays" */ }
+  }
+
+  /* ---------- Search ---------- */
+  $('search-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = $('q').value.trim(), barangay = $('brgy').value, out = $('results'), msg = $('search-msg');
+    msg.className = 'hint'; msg.textContent = 'Search by full name or Senior ID (e.g. SC-2026-00123)';
+    if (!q && !barangay) { msg.className = 'hint err'; msg.textContent = 'Enter a name or Senior ID to search.'; return; }
+
+    $('go').disabled = true; out.hidden = false;
+    out.innerHTML = '<div class="card pad muted">Searching…</div>';
+    try {
+      const p = new URLSearchParams(); if (q) p.set('q', q); if (barangay) p.set('barangay', barangay);
+      const { seniors } = await Auth.api('/seniors/search?' + p.toString());
+      if (!seniors.length) {
+        out.innerHTML = `<div class="card empty"><div class="icon">!</div><h3>No record Found</h3>
+          <p class="muted">We couldn't find a senior matching "${esc(q || barangay)}".<br>Check the spelling or Senior ID and search again.</p>
+          <button class="btn small" id="again" type="button">Search Again</button></div>`;
+      } else {
+        out.innerHTML = `<div class="card tbl"><div class="count">${seniors.length} record${seniors.length === 1 ? '' : 's'} found</div>
+          <table><thead><tr><th>Senior ID</th><th>Full Name</th><th>Age</th><th>Barangay</th><th>Status</th><th></th></tr></thead><tbody>
+          ${seniors.map(s => `<tr><td>${esc(s.senior_id)}</td><td>${esc(nameOf(s))}</td><td>${esc(s.age)}</td><td>${esc(s.barangay)}</td>
+            <td>${pill(s.status)}</td><td><button class="btn ghost small" type="button" data-view="${esc(s.senior_id)}">View</button></td></tr>`).join('')}
+          </tbody></table></div>`;
+      }
+    } catch (err) {
+      out.innerHTML = `<div class="card pad bad">${esc(err.message)}</div>`;
+    } finally { $('go').disabled = false; }
+  });
+
+  $('results').addEventListener('click', e => {
+    if (e.target.id === 'again') { $('q').value = ''; $('results').hidden = true; $('q').focus(); return; }
+    const b = e.target.closest('[data-view]'); if (b) openProfile(b.dataset.view, b);
+  });
+
+  /* ---------- Profile ---------- */
+  async function openProfile(id, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const { senior } = await Auth.api('/seniors/' + encodeURIComponent(id));
+      current = senior; renderProfile(); show('profile');
+    } catch (err) {
+      $('results').hidden = false;
+      $('results').innerHTML = `<div class="card pad bad">${esc(err.message)}</div>`;
+    } finally { if (btn) btn.disabled = false; }
+  }
+
+  function renderProfile() {
+    const s = current, item = (l, v) => `<div><dt>${l}</dt><dd>${esc(v || '—')}</dd></div>`;
+    $('p-avatar').textContent = (s.first_name[0] + s.last_name[0]).toUpperCase();
+    $('p-name').textContent = [s.first_name, s.last_name].join(' ');
+    $('p-sub').textContent = `Senior ID: ${s.senior_id} • Age ${s.age}`;
+    $('p-pill').innerHTML = pill(s.status);
+    $('p-personal').innerHTML = item('First Name', s.first_name) + item('Middle Name', s.middle_name || 'N/A') +
+      item('Last Name', s.last_name) + item('Date of Birth', s.date_of_birth ? new Date(s.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '') +
+      item('Sex', s.sex) + item('Civil Status', s.civil_status);
+    $('p-contact').innerHTML = item('Mobile Number', phone(s.mobile_number)) + item('Email', s.email) +
+      item('Street', s.street_address) + item('Barangay', s.barangay) + item('City / Municipality', s.city_municipality) +
+      item('Emergency Contact', s.emergency_contact ? s.emergency_contact + (s.emergency_relationship ? ` (${s.emergency_relationship})` : '') : '');
+    $('p-account').innerHTML = item('Status', s.status) + item('Registered On', s.registered_on) +
+      item('Fingerprint', s.fingerprint_status) + item('Last Updated', s.last_updated);
+    $('edit').hidden = !CAN_EDIT; // Benefits Staff can view only
+  }
+
+  $('back').addEventListener('click', () => show('search'));
+  $('edit').addEventListener('click', startEdit);
+  $('cancel').addEventListener('click', () => show('profile'));
+  $('done-ok').addEventListener('click', () => $('done').close());
+
+  /* ---------- Edit ---------- */
+  function startEdit() {
+    clearErrors();
+    const civil = form.elements.civil_status;
+    if (current.civil_status && ![...civil.options].some(o => o.value === current.civil_status)) {
+      civil.add(new Option(current.civil_status, current.civil_status));
+    }
+    for (const el of form.elements) if (el.name) el.value = current[el.name] ?? '';
+    show('edit');
+  }
+
+  function clearErrors() {
+    $('banner').hidden = true;
+    form.querySelectorAll('.invalid').forEach(f => f.classList.remove('invalid'));
+    form.querySelectorAll('.ferr').forEach(s => { s.textContent = ''; });
+  }
+
+  function showErrors(fields, banner) {
+    clearErrors();
+    let first = null;
+    for (const [name, text] of Object.entries(fields || {})) {
+      const el = form.elements[name]; if (!el) continue;
+      el.classList.add('invalid');
+      const small = el.closest('label')?.querySelector('.ferr'); if (small) small.textContent = text;
+      first = first || el;
+    }
+    $('banner').textContent = banner || 'Please correct the highlighted fields before saving.';
+    $('banner').hidden = false;
+    if (first) first.focus();
+  }
+
+  form.addEventListener('input', e => {
+    e.target.classList.remove('invalid');
+    const small = e.target.closest('label')?.querySelector('.ferr'); if (small) small.textContent = '';
+  });
+
+  // Same rules as the server (the server is still the final check)
+  const REQUIRED = { first_name: 'First name', last_name: 'Last name', sex: 'Sex', date_of_birth: 'Date of birth', civil_status: 'Civil status',
+    street_address: 'Street address', barangay: 'Barangay', city_municipality: 'City / municipality', emergency_contact: 'Emergency contact', status: 'Status' };
+  const MAXLEN = { first_name: 50, middle_name: 50, last_name: 50, civil_status: 20, email: 100, street_address: 100, barangay: 50,
+    city_municipality: 50, emergency_contact: 100, emergency_relationship: 30 };
+
+  function validate(d) {
+    const e = {};
+    for (const [k, l] of Object.entries(REQUIRED)) if (!String(d[k] ?? '').trim()) e[k] = `${l} is required.`;
+    for (const [k, n] of Object.entries(MAXLEN)) if (!e[k] && String(d[k] ?? '').trim().length > n) e[k] = `Maximum ${n} characters.`;
+    const mob = String(d.mobile_number || '').replace(/[\s-]/g, '');
+    if (mob && !/^[0-9]{11}$/.test(mob)) e.mobile_number = 'Enter a valid 11-digit mobile number.';
+    const mail = String(d.email || '').trim();
+    if (mail && !e.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) e.email = 'Enter a valid email address.';
+    if (!e.date_of_birth) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d.date_of_birth);
+      if (!m) e.date_of_birth = 'Enter a valid date of birth.';
+      else {
+        const now = new Date(); let age = now.getFullYear() - +m[1];
+        if (now.getMonth() + 1 < +m[2] || (now.getMonth() + 1 === +m[2] && now.getDate() < +m[3])) age--;
+        if (age < 60) e.date_of_birth = 'Senior must be 60 years or older.';
+      }
+    }
+    return e;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!current || !CAN_EDIT) return;
+    const data = Object.fromEntries(new FormData(form));
+    const errs = validate(data);
+    if (Object.keys(errs).length) return showErrors(errs);
+    if (data.status === 'Deceased' && current.status !== 'Deceased' &&
+        !confirm('Mark this senior as Deceased? Please make sure this is correct before saving.')) return;
+
+    $('save').disabled = true; clearErrors();
+    try {
+      // Called directly (not Auth.api) so field-level errors from the server can be shown
+      const res = await fetch('/api/seniors/' + encodeURIComponent(current.senior_id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Auth.token() || '') },
+        body: JSON.stringify(data)
+      });
+      if (res.status === 401) { Auth.clear(); location.href = '/login.html'; return; }
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) return showErrors(out.fields, out.error || 'Could not save the changes. Please try again.');
+
+      current = out.senior; renderProfile(); show('profile');
+      $('done-title').textContent = out.changed ? 'Profile Updated' : 'No Changes';
+      $('done-text').textContent = out.changed ? 'The changes were saved and recorded in the update log.' : 'Nothing was changed, so nothing was saved.';
+      $('done').showModal();
+    } catch {
+      showErrors({}, 'Could not reach the server. Check your connection and try again.');
+    } finally { $('save').disabled = false; }
+  });
+
+  loadBarangays();
+  show('search');
+</script>
+</body>
+</html>
