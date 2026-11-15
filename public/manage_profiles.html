@@ -192,9 +192,8 @@
     document.querySelector('.page-head h1').textContent = title;
     const subEl = document.querySelector('.page-head .sub'); if (subEl) subEl.textContent = sub;
     const id = current ? esc(current.senior_id) : '';
-    crumbs.innerHTML = '<a href="/index.html">Home</a> / ' + (view === 'search'
-      ? '<b>Manage Senior Profile</b>'
-      : '<a href="#" data-go="search">Manage Senior Profile</a> / ' +
+    crumbs.innerHTML = (view === 'search' ?
+      '' : '<a href="#" data-go="search">Manage Senior Profile</a> / ' +
         (view === 'profile' ? `<b>${id}</b>` : `<a href="#" data-go="profile">${id}</a> / <b>Edit</b>`));
     window.scrollTo(0, 0);
   }
