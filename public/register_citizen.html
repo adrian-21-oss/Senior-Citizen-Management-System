@@ -71,8 +71,19 @@
     <aside class="card pad">
       <h2>Biometric Enrollment</h2>
       <p class="muted">Capture the fingerprint after the profile has been saved.</p>
-      <div class="fp" id="fp"><svg viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="4" fill="#94a3b8"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#7c8fa3" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
+      <div class="fp" id="fp"><svg viewBox="0 0 160 160" fill="none"><circle cx="80" cy="80" r="4" fill="#94a3b8"/><path d="M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110" stroke="#94a3b8" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <path d="M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116" stroke="#7c8fa3" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div>
       <div class="status" id="status">Waiting for a saved profile</div>
+      <label style="margin-bottom:12px">Finger to enroll
+        <select id="finger">
+          <option>Right Index</option><option>Right Thumb</option><option>Right Middle</option><option>Right Ring</option><option>Right Little</option>
+          <option>Left Index</option><option>Left Thumb</option><option>Left Middle</option><option>Left Ring</option><option>Left Little</option>
+        </select>
+      </label>
       <button class="btn" id="scan" style="width:100%" disabled>Initiate Fingerprint Scan</button>
     </aside>
   </div>
@@ -119,16 +130,47 @@
       savedId = r.senior_id; $('scan').disabled = false;
       msg(`Saved as ${savedId}. Now capture the fingerprint.`, 'ok'); 
       fp('', `Profile saved! Ready for fingerprint scan.`);
-    } catch (err) { fp('error', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }
+    } catch (err) { fp('error', 'Could not save the profile'); msg(err.message, 'err'); $('scan').disabled = false; }
   });
 
-  // The scan is simulated until a scanner SDK is connected; the enrollment is saved for real.
-  $('scan').addEventListener('click', async () => {
-    if (!savedId) return;
-    $('scan').disabled = true; fp('scanning', 'Scanning…');
-    await new Promise(r => setTimeout(r, 1500));
+    // ---- Real fingerprint capture through the SCMS Fingerprint Helper (runs on the PC with the reader) ----
+  const HELPER = 'http://localhost:5055';
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // Returns the helper's JSON answer, or null when the helper is not running.
+  async function helper(path, body) {
     try {
-      await Auth.api(`/seniors/${encodeURIComponent(savedId)}/biometric`, { method: 'POST', body: {} });
+      const r = await fetch(HELPER + path, body === undefined ? {} : {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return await r.json();
+    } catch { return null; }
+  }
+
+  // Asks the helper for an enrollment template. Returns { template } or { unavailable: true }.
+  async function captureTemplate() {
+    const first = await helper('/session', { mode: 'enroll' });
+    if (!first) return { unavailable: true };
+    const until = Date.now() + 95000;
+    for (;;) {
+      const s = await helper('/session');
+      if (!s) throw new Error('Lost contact with the fingerprint helper.');
+      $('status').textContent = s.message;
+      if (s.state === 'done') return { template: s.template };
+      if (s.state === 'error' || s.state === 'cancelled') throw new Error(s.message);
+      if (Date.now() > until) { await helper('/cancel', {}); throw new Error('Timed out. Please try again.'); }
+      await sleep(400);
+    }
+  }
+
+    $('scan').addEventListener('click', async () => {
+    if (!savedId) return;
+    const finger = $('finger').value;
+    $('scan').disabled = true;
+    fp('scanning', `Place your ${finger.toLowerCase()} on the reader…`);
+    try {
+      const cap = await captureTemplate();
+      const body = cap.unavailable ? { finger } : { template: cap.template, finger };
+      await Auth.api(`/seniors/${encodeURIComponent(savedId)}/biometric`, { method: 'POST', body });
       fp('done', `Fingerprint enrolled for ${savedId}`); msg('Registration complete.', 'ok');
       setTimeout(() => { form.reset(); }, 2500);
     } catch (err) { fp('error', 'Scan failed. Try again'); msg(err.message, 'err'); $('scan').disabled = false; }

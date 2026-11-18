@@ -123,15 +123,32 @@ router.post('/seniors', auth('Admin', 'Registration Staff'), async (req, res) =>
 });
 
 /* ---------- Biometric enrollment ---------- */
-// The scanner step is simulated: template_data gets random bytes. Replace crypto.randomBytes(512)
-// with the template from the real scanner SDK when the device is available.
+// The template comes from the SCMS Fingerprint Helper (real scanner).
+// Development only: put SIMULATE_SCANNER=true in .env to store random bytes when no scanner is available.
+const FINGERS = ['Right Thumb', 'Right Index', 'Right Middle', 'Right Ring', 'Right Little',
+                 'Left Thumb', 'Left Index', 'Left Middle', 'Left Ring', 'Left Little'];
+const MAX_TEMPLATE_BYTES = 64 * 1024;
 router.post('/seniors/:id/biometric', auth('Admin', 'Registration Staff'), async (req, res) => {
   try {
     const id = req.params.id;
+    let template;
+    if (req.body.template) {
+      const b64 = String(req.body.template);
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return res.status(400).json({ error: 'The fingerprint data is not valid.' });
+      template = Buffer.from(b64, 'base64');
+      if (template.length < 50 || template.length > MAX_TEMPLATE_BYTES) {
+        return res.status(400).json({ error: 'The fingerprint data has an unexpected size.' });
+      }
+    } else if (process.env.SIMULATE_SCANNER === 'true') {
+      template = crypto.randomBytes(512);
+    } else {
+      return res.status(400).json({ error: 'No fingerprint data received. Start the SCMS Fingerprint Helper and scan again.' });
+    }
+
     const r = await pool.query(
       `UPDATE fingerprint SET template_data = $2, finger_used = $3, enrollment_status = 'Enrolled', enrolled_on = NOW()
        WHERE senior_id = $1 AND enrollment_status = 'Pending' RETURNING fingerprint_id`,
-      [id, crypto.randomBytes(512), String(req.body.finger || 'Right Index')]);
+      [id, template, FINGERS.includes(req.body.finger) ? req.body.finger : 'Not specified']);
     if (!r.rowCount) {
       await audit(req.admin.adminId, id, 'Biometric Enrollment', 'Enrollment failed: no pending fingerprint record', false);
       return res.status(409).json({ error: 'No pending fingerprint record for this senior.' });
@@ -140,7 +157,6 @@ router.post('/seniors/:id/biometric', auth('Admin', 'Registration Staff'), async
     res.json({ ok: true });
   } catch (e) { fail(res, e, 'Could not save the fingerprint.'); }
 });
-
 
 /* ============================================================
    MANAGE SENIOR PROFILE (SCMS-UC005)
