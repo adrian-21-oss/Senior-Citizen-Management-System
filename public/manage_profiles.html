@@ -66,6 +66,22 @@
   .modal .tick { width: 46px; height: 46px; margin: 0 auto 14px; border-radius: 50%; display: grid; place-items: center; background: var(--green-bg); color: var(--green-ink); font-size: 22px; font-weight: 700; }
   .modal h2 { margin: 0 0 8px; font-size: 20px; } .modal p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
 
+  /* Fingerprint verification */
+  .scanbox { text-align: center; padding: 36px 22px; }
+  .scanbox .muted { margin: 22px 0 16px; }
+  .scan-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .fpbox { width: 100%; max-width: 340px; height: 190px; margin: 0 auto; border-radius: 14px; display: grid; place-items: center; background: #0f1117; border: 1px solid #1e293b; }
+  .fpbox svg { width: 140px; height: 140px; overflow: visible; }
+  .fpbox.scanning .ring-pulse { animation: pulse-ring 2s ease-in-out infinite; transform-origin: 80px 80px; }
+  .fpbox.scanning .ring-pulse-2 { animation: pulse-ring 2s ease-in-out infinite .6s; transform-origin: 80px 80px; }
+  @keyframes pulse-ring { 0% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.3); } }
+  .fpbox.error .shake { animation: shake .5s ease-in-out .2s both; transform-origin: 80px 80px; }
+  @keyframes shake { 0%, 100% { transform: rotate(0); } 20%, 60% { transform: rotate(-6deg); } 40%, 80% { transform: rotate(6deg); } }
+  .steps { list-style: none; margin: 18px auto 0; padding: 0; max-width: 340px; text-align: left; }
+  .steps li { display: flex; align-items: center; gap: 12px; padding: 10px 0; font-size: 14px; border-top: 1px solid var(--line); }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink); background: #fff; flex-shrink: 0; }
+  .steps li.done .dot { background: var(--blue); border-color: var(--blue); }
+
   @media (max-width: 900px) { .cols, .fields, .info.four { grid-template-columns: 1fr; } .span2 { grid-column: auto; } }
 </style>
 </head>
@@ -88,6 +104,24 @@
       <p class="hint" id="search-msg">Search by full name or Senior ID (e.g. SC-2026-00123)</p>
     </form>
     <div id="results" hidden></div>
+  </section>
+
+  <!-- VIEW: FINGERPRINT SCAN -->
+  <section id="view-scan" hidden>
+    <div class="card pad" id="scan-who"></div>
+    <div class="card scanbox">
+      <div class="fpbox" id="fpbox"></div>
+      <p class="muted" id="scan-text"></p>
+      <ul class="steps" id="steps" hidden>
+        <li id="step1"><span class="dot"></span>Fingerprint matched</li>
+        <li id="step2"><span class="dot"></span>Identity verified</li>
+        <li id="step3"><span class="dot"></span>Retrieving senior profile</li>
+      </ul>
+      <div class="scan-actions">
+        <button class="btn" id="scan-start" type="button">Start scan</button>
+        <button class="btn ghost" id="scan-cancel" type="button">Change record</button>
+      </div>
+    </div>
   </section>
 
   <!-- VIEW 2: PROFILE -->
@@ -170,9 +204,12 @@
   const CAN_EDIT = ['Admin', 'Registration Staff'].includes((Auth.user() || {}).role);
   const form = $('edit-form');
   let current = null; // the senior currently open
+  let target = null;  // the senior being verified by fingerprint
+  let found = [];     // the latest search results
 
   const TITLES = {
     search:  ['Manage Senior Profile', 'Search for a registered senior citizen to review or update their record.'],
+    scan:    ['Verify Identity', 'Confirm the senior’s identity with a fingerprint scan before opening the record.'],
     profile: ['Senior Profile', 'Review the complete record of this senior citizen.'],
     edit:    ['Edit Senior Profile', 'Update personal information, address, contact details or account status.']
   };
@@ -187,14 +224,15 @@
   });
 
   function show(view) {
-    ['search', 'profile', 'edit'].forEach(v => { $('view-' + v).hidden = v !== view; });
+    ['search', 'scan', 'profile', 'edit'].forEach(v => { $('view-' + v).hidden = v !== view; });
     const [title, sub] = TITLES[view];
     document.querySelector('.page-head h1').textContent = title;
     const subEl = document.querySelector('.page-head .sub'); if (subEl) subEl.textContent = sub;
     const id = current ? esc(current.senior_id) : '';
-    crumbs.innerHTML = (view === 'search' ?
-      '' : '<a href="#" data-go="search">Manage Senior Profile</a> / ' +
-        (view === 'profile' ? `<b>${id}</b>` : `<a href="#" data-go="profile">${id}</a> / <b>Edit</b>`));
+    const home = '<a href="#" data-go="search">Manage Senior Profile</a> / ';
+    crumbs.innerHTML = view === 'search' ? ''
+      : view === 'scan' ? home + `<b>${esc(target ? target.senior_id : '')}</b> / <b>Verify</b>`
+      : home + (view === 'profile' ? `<b>${id}</b>` : `<a href="#" data-go="profile">${id}</a> / <b>Edit</b>`);
     window.scrollTo(0, 0);
   }
 
@@ -223,6 +261,7 @@
     try {
       const p = new URLSearchParams(); if (q) p.set('q', q); if (barangay) p.set('barangay', barangay);
       const { seniors } = await Auth.api('/seniors/search?' + p.toString());
+      found = seniors;
       if (!seniors.length) {
         out.innerHTML = `<div class="card empty"><div class="icon">!</div><h3>No record Found</h3>
           <p class="muted">We couldn't find a senior matching "${esc(q || barangay)}".<br>Check the spelling or Senior ID and search again.</p>
@@ -239,23 +278,14 @@
     } finally { $('go').disabled = false; }
   });
 
+  // "View" now starts the fingerprint check; the profile opens only after a match
   $('results').addEventListener('click', e => {
     if (e.target.id === 'again') { $('q').value = ''; $('results').hidden = true; $('q').focus(); return; }
-    const b = e.target.closest('[data-view]'); if (b) openProfile(b.dataset.view, b);
+    const b = e.target.closest('[data-view]');
+    if (b) startVerify(found.find(s => s.senior_id === b.dataset.view));
   });
 
   /* ---------- Profile ---------- */
-  async function openProfile(id, btn) {
-    if (btn) btn.disabled = true;
-    try {
-      const { senior } = await Auth.api('/seniors/' + encodeURIComponent(id));
-      current = senior; renderProfile(); show('profile');
-    } catch (err) {
-      $('results').hidden = false;
-      $('results').innerHTML = `<div class="card pad bad">${esc(err.message)}</div>`;
-    } finally { if (btn) btn.disabled = false; }
-  }
-
   function renderProfile() {
     const s = current, item = (l, v) => `<div><dt>${l}</dt><dd>${esc(v || '—')}</dd></div>`;
     $('p-avatar').textContent = (s.first_name[0] + s.last_name[0]).toUpperCase();
@@ -369,6 +399,108 @@
       showErrors({}, 'Could not reach the server. Check your connection and try again.');
     } finally { $('save').disabled = false; }
   });
+
+  /* ---------- Fingerprint verification ---------- */
+  const HELPER = 'http://localhost:5055'; // SCMS Fingerprint Helper (runs on the PC with the reader)
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let runId = 0; // lets "Change record" cancel a scan that is still running
+  const RINGS = [
+    'M 68 80 Q 68 66 80 66 Q 92 66 92 80 Q 92 94 80 94 Q 68 94 68 80',
+    'M 58 80 Q 58 56 80 56 Q 102 56 102 80 Q 102 104 80 104 Q 58 104 58 80',
+    'M 50 88 Q 48 48 80 48 Q 112 48 112 80 Q 112 112 80 112 Q 62 112 52 100',
+    'M 43 96 Q 38 38 80 38 Q 124 38 124 80 Q 124 120 90 128 Q 72 132 58 122',
+    'M 37 104 Q 28 28 80 28 Q 134 28 134 80 Q 134 128 96 138 Q 74 144 52 134 Q 38 126 34 110',
+    'M 32 112 Q 20 18 80 18 Q 142 18 142 80 Q 142 136 104 148 Q 80 155 58 146 Q 36 136 28 116'
+  ];
+  const FP_COLOR = { idle: '#94a3b8', scanning: '#38bdf8', error: '#f87171' };
+  const SCAN_TITLE = {
+    idle: 'Confirm seniors’ identity before opening the profile.',
+    scanning: 'Place a finger on the scanner.',
+    matching: 'Matching the scan against the stored record.',
+    failed: 'The scan could not be matched.'
+  };
+
+  function setFp(el, state) {
+    const c = FP_COLOR[state];
+    const rings = RINGS.map(d => `<path d="${d}" stroke="${c}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`).join('');
+    const dot = `<circle cx="80" cy="80" r="4" fill="${c}"/>`;
+    const pulse = state === 'scanning'
+      ? `<circle class="ring-pulse" cx="80" cy="80" r="70" stroke="${c}" stroke-width="1.5" fill="none" opacity=".6"/><circle class="ring-pulse-2" cx="80" cy="80" r="70" stroke="${c}" stroke-width="1.5" fill="none" opacity=".4"/>` : '';
+    const badge = state === 'error'
+      ? `<circle cx="118" cy="118" r="18" fill="#1a0a0a" stroke="${c}" stroke-width="1.5"/><line x1="111" y1="111" x2="125" y2="125" stroke="${c}" stroke-width="2.8" stroke-linecap="round"/><line x1="125" y1="111" x2="111" y2="125" stroke="${c}" stroke-width="2.8" stroke-linecap="round"/>` : '';
+    const body = state === 'error' ? `<g class="shake">${dot}${rings}</g>` : dot + rings;
+    el.className = 'fpbox ' + state;
+    el.innerHTML = `<svg viewBox="0 0 160 160" fill="none" aria-hidden="true">${pulse}${body}${badge}</svg>`;
+  }
+
+  function setScan(state, text) {
+    document.querySelector('.page-head h1').textContent = SCAN_TITLE[state];
+    setFp($('fpbox'), state === 'idle' ? 'idle' : state === 'failed' ? 'error' : 'scanning');
+    $('scan-text').textContent = text;
+    $('steps').hidden = state !== 'matching';
+    $('scan-start').textContent = state === 'failed' ? 'Start again' : 'Start scan';
+    $('scan-start').hidden = state === 'scanning' || state === 'matching';
+  }
+
+  // Returns the helper's JSON answer, or null when the helper is not running.
+  async function helper(path, body) {
+    try {
+      const r = await fetch(HELPER + path, body === undefined ? {} : {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return await r.json();
+    } catch { return null; }
+  }
+
+  // Asks the helper for ONE verification scan. Returns { template } or { unavailable: true }.
+  // ASSUMPTION: the helper accepts mode 'verify'. Confirm this with whoever wrote the helper.
+  async function captureForVerify(mine) {
+    const first = await helper('/session', { mode: 'verify' });
+    if (!first) return { unavailable: true };
+    const until = Date.now() + 60000;
+    for (;;) {
+      if (mine !== runId) throw new Error('Cancelled.');
+      const s = await helper('/session');
+      if (!s) throw new Error('Lost contact with the fingerprint helper.');
+      $('scan-text').textContent = s.message;
+      if (s.state === 'done') return { template: s.template };
+      if (s.state === 'error' || s.state === 'cancelled') throw new Error(s.message);
+      if (Date.now() > until) { await helper('/cancel', {}); throw new Error('Timed out. Please try again.'); }
+      await sleep(400);
+    }
+  }
+
+  function startVerify(s) {
+    if (!s) return;
+    target = s; current = null; runId++;
+    const item = (l, v) => `<div><dt>${l}</dt><dd>${esc(v)}</dd></div>`;
+    $('scan-who').innerHTML = `<dl class="info four">${item('Senior ID', s.senior_id)}${item('Full Name', nameOf(s))}${item('Age', s.age)}${item('Barangay', s.barangay)}</dl>`;
+    show('scan');
+    setScan('idle', 'Ask the senior to place a finger on the scanner, then start the scan.');
+  }
+
+  async function runScan() {
+    if (!target) return;
+    const mine = ++runId, id = target.senior_id, tick = n => $('step' + n).classList.add('done');
+    [1, 2, 3].forEach(n => $('step' + n).classList.remove('done'));
+    setScan('scanning', 'Place the finger on the reader…');
+    try {
+      const cap = await captureForVerify(mine);
+      if (mine !== runId) return;
+      setScan('matching', 'Comparing with the stored fingerprint…');
+      const r = await Auth.api('/seniors/' + encodeURIComponent(id) + '/verify-fingerprint',
+        { method: 'POST', body: cap.unavailable ? {} : { template: cap.template } });
+      if (mine !== runId) return;
+      if (!r.matched) return setScan('failed', 'The fingerprint did not match this record. No profile is shown.');
+      tick(1); await sleep(600); tick(2); await sleep(600);
+      const { senior } = await Auth.api('/seniors/' + encodeURIComponent(id));
+      if (mine !== runId) return;
+      tick(3); await sleep(400);
+      current = senior; renderProfile(); show('profile');
+    } catch (err) { if (mine === runId) setScan('failed', err.message); }
+  }
+
+  $('scan-start').addEventListener('click', runScan);
+  $('scan-cancel').addEventListener('click', () => { runId++; helper('/cancel', {}); target = null; show('search'); });
 
   loadBarangays();
   show('search');

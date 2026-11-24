@@ -168,6 +168,36 @@ const SENIOR_ID_RE = /^[A-Za-z0-9-]{1,15}$/;
 const PROFILE_STATUSES = ['Active', 'Inactive', 'Deceased'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/* ---------- Fingerprint verification: the gate for opening a profile ---------- */
+// A successful scan gives the signed-in session a pass for that ONE senior for 10 minutes.
+// GET /seniors/:id (full profile) and PUT /seniors/:id (edit) refuse without a pass.
+const PASS_MS = 10 * 60e3;
+const passes = new Map(); // `${token}|${seniorId}` -> expiry time
+const hasPass = (req, id) => (passes.get(`${req.token}|${id}`) || 0) > Date.now();
+
+router.post('/seniors/:id/verify-fingerprint', auth(), async (req, res) => {
+  const id = String(req.params.id || '').trim();
+  if (!SENIOR_ID_RE.test(id)) return res.status(404).json({ error: 'Record not found.' });
+  try {
+    const fp = (await pool.query(
+      `SELECT template_data FROM fingerprint WHERE senior_id = $1 AND enrollment_status = 'Enrolled'
+       ORDER BY fingerprint_id DESC LIMIT 1`, [id])).rows[0];
+    if (!fp) return res.status(409).json({ error: 'This senior has no enrolled fingerprint.' });
+
+    if (req.body.template) {
+      // TODO: compare req.body.template (base64) with fp.template_data using the DigitalPersona matcher,
+      // then call passes.set(...) below only when it matches.
+      return res.status(501).json({ error: 'Real fingerprint matching is not connected yet.' });
+    }
+    // Development only: with SIMULATE_SCANNER=true in .env, any scan counts as a match.
+    if (process.env.SIMULATE_SCANNER !== 'true') {
+      return res.status(400).json({ error: 'No fingerprint data received. Start the SCMS Fingerprint Helper and scan again.' });
+    }
+    passes.set(`${req.token}|${id}`, Date.now() + PASS_MS);
+    res.json({ matched: true });
+  } catch (e) { fail(res, e, 'Could not check the fingerprint.'); }
+});
+
 // Field groups: used to build the audit description (field names only, never values)
 const FIELD_GROUPS = [
   ['personal information', ['first_name', 'middle_name', 'last_name', 'sex', 'date_of_birth', 'civil_status']],
@@ -277,10 +307,11 @@ router.get('/seniors/barangays', auth(), async (req, res) => {
 });
 
 /* ---------- View one profile ---------- */
-// GET /api/seniors/SC-2026-00001
+// GET /api/seniors/SC-2026-00001   (needs a fingerprint pass for this senior)
 router.get('/seniors/:id', auth(), async (req, res) => {
   const id = String(req.params.id || '').trim();
   if (!SENIOR_ID_RE.test(id)) return res.status(404).json({ error: 'Record not found.' });
+  if (!hasPass(req, id)) return res.status(403).json({ error: 'Verify the fingerprint first.' });
   try {
     const r = await pool.query(`${SENIOR_SELECT} WHERE s.senior_id = $1`, [id]);
     if (!r.rowCount) return res.status(404).json({ error: 'Record not found.' });
@@ -289,10 +320,11 @@ router.get('/seniors/:id', auth(), async (req, res) => {
 });
 
 /* ---------- Update profile + audit log ---------- */
-// PUT /api/seniors/SC-2026-00001   body: the edit-form fields
+// PUT /api/seniors/SC-2026-00001   body: the edit-form fields (needs a fingerprint pass for this senior)
 router.put('/seniors/:id', auth('Admin', 'Registration Staff'), async (req, res) => {
   const id = String(req.params.id || '').trim();
   if (!SENIOR_ID_RE.test(id)) return res.status(404).json({ error: 'Record not found.' });
+  if (!hasPass(req, id)) return res.status(403).json({ error: 'Verify the fingerprint again to edit this record.' });
 
   const { v, errors } = validateProfile(req.body || {});
   if (Object.keys(errors).length) {
