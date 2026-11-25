@@ -389,4 +389,7 @@ router.put('/seniors/:id', auth('Admin', 'Registration Staff'), async (req, res)
   } finally { client.release(); }
 });
 
+// Audit and Reports (SCMS-UC006)
+require('./audit-routes')(router, pool, auth);
+
 module.exports = router;
