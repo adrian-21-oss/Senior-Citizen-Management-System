@@ -451,18 +451,19 @@
     } catch { return null; }
   }
 
-  // Asks the helper for ONE verification scan. Returns { template } or { unavailable: true }.
-  // ASSUMPTION: the helper accepts mode 'verify'. Confirm this with whoever wrote the helper.
+  // Asks the helper for ONE verification scan. Returns { features } or { unavailable: true }.
   async function captureForVerify(mine) {
     const first = await helper('/session', { mode: 'verify' });
     if (!first) return { unavailable: true };
+    if (first.error) throw new Error(first.error + ' Update the SCMS Fingerprint Helper.');
+    if (first.state === 'error') throw new Error(first.message);
     const until = Date.now() + 60000;
     for (;;) {
       if (mine !== runId) throw new Error('Cancelled.');
       const s = await helper('/session');
       if (!s) throw new Error('Lost contact with the fingerprint helper.');
       $('scan-text').textContent = s.message;
-      if (s.state === 'done') return { template: s.template };
+      if (s.state === 'done') return { features: s.features };
       if (s.state === 'error' || s.state === 'cancelled') throw new Error(s.message);
       if (Date.now() > until) { await helper('/cancel', {}); throw new Error('Timed out. Please try again.'); }
       await sleep(400);
@@ -488,7 +489,7 @@
       if (mine !== runId) return;
       setScan('matching', 'Comparing with the stored fingerprint…');
       const r = await Auth.api('/seniors/' + encodeURIComponent(id) + '/verify-fingerprint',
-        { method: 'POST', body: cap.unavailable ? {} : { template: cap.template } });
+        { method: 'POST', body: cap.unavailable ? {} : { features: cap.features } });
       if (mine !== runId) return;
       if (!r.matched) return setScan('failed', 'The fingerprint did not match this record. No profile is shown.');
       tick(1); await sleep(600); tick(2); await sleep(600);

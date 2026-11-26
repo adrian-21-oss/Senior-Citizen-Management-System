@@ -4,6 +4,7 @@
 require('dotenv').config();
 const express = require('express');
 const crypto = require('crypto');
+const http = require('http');
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -175,6 +176,26 @@ const PASS_MS = 10 * 60e3;
 const passes = new Map(); // `${token}|${seniorId}` -> expiry time
 const hasPass = (req, id) => (passes.get(`${req.token}|${id}`) || 0) > Date.now();
 
+// The DigitalPersona matcher is a Windows .NET library, so matching is done by the SCMS Fingerprint Helper.
+// This server sends it the stored template + the fresh scan (POST /match). The helper only accepts that call
+// when it has no browser Origin header, so only this server (not a web page) can use it.
+// Set HELPER_URL in .env if the helper is not on this same PC (default http://localhost:5055).
+function matchWithHelper(templateBuf, featuresB64) {
+  const url = new URL('/match', process.env.HELPER_URL || 'http://localhost:5055');
+  const payload = JSON.stringify({ template: templateBuf.toString('base64'), features: featuresB64 });
+  return new Promise((resolve, reject) => {
+    const r = http.request(url, { method: 'POST', timeout: 10000,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, resp => {
+      let data = '';
+      resp.on('data', c => data += c);
+      resp.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+    });
+    r.on('timeout', () => r.destroy(new Error('Fingerprint helper timed out.')));
+    r.on('error', reject);
+    r.end(payload);
+  });
+}
+
 router.post('/seniors/:id/verify-fingerprint', auth(), async (req, res) => {
   const id = String(req.params.id || '').trim();
   if (!SENIOR_ID_RE.test(id)) return res.status(404).json({ error: 'Record not found.' });
@@ -184,10 +205,23 @@ router.post('/seniors/:id/verify-fingerprint', auth(), async (req, res) => {
        ORDER BY fingerprint_id DESC LIMIT 1`, [id])).rows[0];
     if (!fp) return res.status(409).json({ error: 'This senior has no enrolled fingerprint.' });
 
-    if (req.body.template) {
-      // TODO: compare req.body.template (base64) with fp.template_data using the DigitalPersona matcher,
-      // then call passes.set(...) below only when it matches.
-      return res.status(501).json({ error: 'Real fingerprint matching is not connected yet.' });
+    if (req.body.features) {
+      const b64 = String(req.body.features);
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64) || b64.length > MAX_TEMPLATE_BYTES * 2) {
+        return res.status(400).json({ error: 'The fingerprint data is not valid.' });
+      }
+      let out;
+      try { out = await matchWithHelper(fp.template_data, b64); }
+      catch (e) {
+        console.error('helper /match:', e.message);
+        return res.status(503).json({ error: 'Could not reach the SCMS Fingerprint Helper to compare the scan.' });
+      }
+      if (out.error) return res.status(409).json({ error: out.error + ' The senior may need to be enrolled again.' });
+      if (!out.matched) {
+        return res.json({ matched: false });
+      }
+      passes.set(`${req.token}|${id}`, Date.now() + PASS_MS);
+      return res.json({ matched: true });
     }
     // Development only: with SIMULATE_SCANNER=true in .env, any scan counts as a match.
     if (process.env.SIMULATE_SCANNER !== 'true') {
