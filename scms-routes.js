@@ -422,5 +422,6 @@ router.put('/seniors/:id', auth('Admin', 'Registration Staff'), async (req, res)
     fail(res, e, 'Could not save the changes. Nothing was updated.');
   } finally { client.release(); }
 });
+require('./audit-routes')(router, pool, auth);
 
 module.exports = router;
